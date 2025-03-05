@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCII Art Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --primary-color: #5D5CDE;
+      --light-bg: #FFFFFF;
+      --light-text: #333333;
+      --dark-bg: #181818;
+      --dark-text: #F5F5F5;
+      --error-color: #e74c3c;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: var(--dark-bg);
+        color: var(--dark-text);
+      }
+      
+      .theme-card {
+        background-color: #2a2a2a;
+        border-color: #3a3a3a;
+      }
+      
+      input, select {
+        background-color: #2a2a2a;
+        color: var(--dark-text);
+        border-color: #3a3a3a;
+      }
+      
+      button:not(.primary-btn) {
+        background-color: #2a2a2a;
+        color: var(--dark-text);
+        border-color: #3a3a3a;
+      }
+      
+      .slider::-webkit-slider-thumb {
+        background: var(--primary-color);
+      }
+      
+      .slider::-moz-range-thumb {
+        background: var(--primary-color);
+      }
+    }
+
+    @media (prefers-color-scheme: light) {
+      body {
+        background-color: var(--light-bg);
+        color: var(--light-text);
+      }
+      
+      .theme-card {
+        background-color: #f7f7f7;
+        border-color: #e1e1e1;
+      }
+      
+      input, select {
+        background-color: #f7f7f7;
+        color: var(--light-text);
+        border-color: #e1e1e1;
+      }
+      
+      button:not(.primary-btn) {
+        background-color: #f7f7f7;
+        color: var(--light-text);
+        border-color: #e1e1e1;
+      }
+      
+      .slider::-webkit-slider-thumb {
+        background: var(--primary-color);
+      }
+      
+      .slider::-moz-range-thumb {
+        background: var(--primary-color);
+      }
+    }
+
+    .primary-btn {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 10px;
+      border-radius: 5px;
+      background: #d3d3d3;
+      outline: none;
+      margin: 10px 0;
+    }
+    
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    .slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    .ascii-pre {
+      font-family: monospace;
+      font-size: 10px;
+      line-height: 1;
+      letter-spacing: 0.1em;
+      white-space: pre;
+      text-align: center;
+      overflow: hidden;
+    }
+    
+    #imagePreview {
+      max-width: 100%;
+      max-height: 300px;
+      margin: 0 auto;
+      display: block;
+    }
+    
+    #asciiOutput {
+      max-width: 100%;
+      overflow: auto;
+    }
+    
+    .ascii-container {
+      display: flex;
+      justify-content: center;
+      max-width: 100%;
+      overflow: auto;
+      background-color: white;
+    }
+    
+    #downloadImage {
+      display: none;
+    }
+    
+    .loading-spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border-left-color: var(--primary-color);
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .error-msg {
+      color: var(--error-color);
+      font-weight: bold;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 640px) {
+      .control-container {
+        flex-direction: column;
+      }
+      
+      .control-item {
+        width: 100%;
+        margin-bottom: 1rem;
+      }
+    }
+  </style>
+</head>
+<body class="p-4 min-h-screen">
+  <div class="max-w-4xl mx-auto theme-card rounded-xl p-6 shadow-md border">
+    <h1 class="text-2xl font-bold text-center mb-6">ASCII Art Generator</h1>
+    
+    <div class="mb-6">
+      <div class="flex flex-col items-center justify-center border-2 border-dashed border-gray-400 rounded-lg p-4 text-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 transition-colors" id="dropZone">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        <p class="text-sm text-gray-500 mb-2">Drag and drop an image or click to select</p>
+        <input type="file" id="imageInput" accept="image/*" class="hidden">
+        <button id="selectImageBtn" class="primary-btn rounded px-4 py-2 text-base">Select Image</button>
+      </div>
+    </div>
+    
+    <div id="previewSection" class="mb-6 hidden">
+      <h2 class="text-xl font-bold mb-2">Image Preview</h2>
+      <div class="flex justify-center">
+        <img id="imagePreview" src="" alt="Preview" class="rounded-lg">
+      </div>
+    </div>
+    
+    <div id="controlsSection" class="mb-6 hidden">
+      <h2 class="text-xl font-bold mb-4">ASCII Art Settings</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label for="styleSelect" class="block mb-2 font-medium">Character Style:</label>
+          <select id="styleSelect" class="w-full px-3 py-2 border rounded-lg text-base">
+            <option value="default">Default (ASCII characters)</option>
+            <option value="simple">Simple (█▓▒░ )</option>
+            <option value="blocks">Block Elements (█▉▍▎)</option>
+            <option value="circles">Circles (●◉◍○)</option>
+            <option value="rectangles">Rectangles (■□▢▣)</option>
+            <option value="custom">Custom Characters</option>
+          </select>
+        </div>
+        
+        <div id="customCharsContainer" class="hidden">
+          <label for="customChars" class="block mb-2 font-medium">Custom Characters:</label>
+          <input type="text" id="customChars" class="w-full px-3 py-2 border rounded-lg text-base" placeholder="@#$%&?!;:+=-_" value="@#$%&?!;:+=-_">
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label for="resolutionSlider" class="block mb-2 font-medium">Resolution: <span id="resolutionValue">100</span>%</label>
+          <input type="range" id="resolutionSlider" class="slider w-full" min="10" max="200" value="100">
+        </div>
+        
+        <div>
+          <label for="invertCheckbox" class="font-medium flex items-center cursor-pointer">
+            <input type="checkbox" id="invertCheckbox" class="mr-2 h-5 w-5">
+            Invert Colors
+          </label>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label for="fontSizeSlider" class="block mb-2 font-medium">Character Size: <span id="fontSizeValue">10</span>px</label>
+          <input type="range" id="fontSizeSlider" class="slider w-full" min="4" max="24" value="10">
+        </div>
+        
+        <div>
+          <label for="lineHeightSlider" class="block mb-2 font-medium">Line Height: <span id="lineHeightValue">1.0</span></label>
+          <input type="range" id="lineHeightSlider" class="slider w-full" min="0.5" max="2" step="0.1" value="1.0">
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="letterSpacingSlider" class="block mb-2 font-medium">Letter Spacing: <span id="letterSpacingValue">0.1</span>em</label>
+          <input type="range" id="letterSpacingSlider" class="slider w-full" min="0" max="1" step="0.05" value="0.1">
+        </div>
+        
+        <div>
+          <label for="bgColorPicker" class="block mb-2 font-medium">Background Color:</label>
+          <input type="color" id="bgColorPicker" class="w-full h-10 rounded-lg" value="#ffffff">
+        </div>
+      </div>
+      
+      <div class="mt-6 flex justify-center">
+        <button id="generateBtn" class="primary-btn rounded-lg px-6 py-3 text-lg font-semibold">Generate ASCII Art</button>
+      </div>
+    </div>
+    
+    <div id="loadingSection" class="flex flex-col items-center justify-center py-8 hidden">
+      <div class="loading-spinner mb-4"></div>
+      <p class="text-lg">Generating ASCII art...</p>
+    </div>
+    
+    <div id="resultSection" class="hidden">
+      <h2 class="text-xl font-bold mb-4">ASCII Art Result</h2>
+      
+      <div class="ascii-container p-4 rounded-lg border mb-4">
+        <div id="asciiOutput" class="ascii-pre"></div>
+      </div>
+      
+      <div class="flex flex-wrap justify-center gap-4">
+        <button id="saveImageBtn" class="primary-btn rounded-lg px-4 py-2 font-medium">Save as Image</button>
+        <button id="copyTextBtn" class="border rounded-lg px-4 py-2 font-medium">Copy ASCII Text</button>
+        <button id="newImageBtn" class="border rounded-lg px-4 py-2 font-medium">Process New Image</button>
+      </div>
+      
+      <div id="saveInstructions" class="mt-4 text-center text-sm hidden">
+        <p>Right-click on the image below and select "Save image as..." to download it.</p>
+        <img id="downloadImage" src="" alt="ASCII Art" class="mt-2 mx-auto border rounded-lg">
+      </div>
+    </div>
+    
+    <div id="errorSection" class="hidden py-4 text-center">
+      <p id="errorMessage" class="error-msg"></p>
+      <button id="resetErrorBtn" class="mt-4 border rounded-lg px-4 py-2 font-medium">Try Again</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // DOM Elements
+      const imageInput = document.getElementById('imageInput');
+      const selectImageBtn = document.getElementById('selectImageBtn');
+      const dropZone = document.getElementById('dropZone');
+      const imagePreview = document.getElementById('imagePreview');
+      const previewSection = document.getElementById('previewSection');
+      const controlsSection = document.getElementById('controlsSection');
+      const styleSelect = document.getElementById('styleSelect');
+      const customCharsContainer = document.getElementById('customCharsContainer');
+      const customChars = document.getElementById('customChars');
+      const resolutionSlider = document.getElementById('resolutionSlider');
+      const resolutionValue = document.getElementById('resolutionValue');
+      const fontSizeSlider = document.getElementById('fontSizeSlider');
+      const fontSizeValue = document.getElementById('fontSizeValue');
+      const lineHeightSlider = document.getElementById('lineHeightSlider');
+      const lineHeightValue = document.getElementById('lineHeightValue');
+      const letterSpacingSlider = document.getElementById('letterSpacingSlider');
+      const letterSpacingValue = document.getElementById('letterSpacingValue');
+      const invertCheckbox = document.getElementById('invertCheckbox');
+      const bgColorPicker = document.getElementById('bgColorPicker');
+      const generateBtn = document.getElementById('generateBtn');
+      const loadingSection = document.getElementById('loadingSection');
+      const resultSection = document.getElementById('resultSection');
+      const asciiOutput = document.getElementById('asciiOutput');
+      const saveImageBtn = document.getElementById('saveImageBtn');
+      const copyTextBtn = document.getElementById('copyTextBtn');
+      const newImageBtn = document.getElementById('newImageBtn');
+      const downloadImage = document.getElementById('downloadImage');
+      const saveInstructions = document.getElementById('saveInstructions');
+      const errorSection = document.getElementById('errorSection');
+      const errorMessage = document.getElementById('errorMessage');
+      const resetErrorBtn = document.getElementById('resetErrorBtn');
+      
+      // Character sets for different styles
+      const characterSets = {
+        default: '@%#*+=-:. ',
+        simple: '█▓▒░ ',
+        blocks: '█▉▊▋▌▍▎▏ ',
+        circles: '●◉◍◎○◌ ',
+        rectangles: '■□▣▢▤▥▦▧▨▩ '
+      };
+      
+      // State
+      let currentImage = null;
+      
+      // Event Listeners
+      selectImageBtn.addEventListener('click', () => imageInput.click());
+      
+      imageInput.addEventListener('change', handleImageSelect);
+      
+      // Drag and drop functionality
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('bg-gray-500', 'bg-opacity-10');
+      });
+      
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('bg-gray-500', 'bg-opacity-10');
+      });
+      
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('bg-gray-500', 'bg-opacity-10');
+        
+        if (e.dataTransfer.files.length) {
+          const file = e.dataTransfer.files[0];
+          if (file.type.match('image.*')) {
+            handleFile(file);
+          } else {
+            showError('Please select an image file.');
+          }
+        }
+      });
+      
+      // Update Sliders and Settings
+      styleSelect.addEventListener('change', () => {
+        if (styleSelect.value === 'custom') {
+          customCharsContainer.classList.remove('hidden');
+        } else {
+          customCharsContainer.classList.add('hidden');
+        }
+      });
+      
+      resolutionSlider.addEventListener('input', () => {
+        resolutionValue.textContent = resolutionSlider.value;
+      });
+      
+      fontSizeSlider.addEventListener('input', () => {
+        fontSizeValue.textContent = fontSizeSlider.value;
+      });
+      
+      lineHeightSlider.addEventListener('input', () => {
+        lineHeightValue.textContent = lineHeightSlider.value;
+      });
+      
+      letterSpacingSlider.addEventListener('input', () => {
+        letterSpacingValue.textContent = letterSpacingSlider.value;
+      });
+      
+      // Generate ASCII Art
+      generateBtn.addEventListener('click', generateAsciiArt);
+      
+      // Result Controls
+      saveImageBtn.addEventListener('click', saveAsImage);
+      copyTextBtn.addEventListener('click', copyAsciiText);
+      newImageBtn.addEventListener('click', resetToNewImage);
+      resetErrorBtn.addEventListener('click', resetError);
+      
+      // Helper Functions
+      function handleImageSelect(e) {
+        if (e.target.files.length) {
+          const file = e.target.files[0];
+          handleFile(file);
+        }
+      }
+      
+      function handleFile(file) {
+        if (!file.type.match('image.*')) {
+          showError('Please select an image file.');
+          return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          hideError();
+          
+          currentImage = new Image();
+          currentImage.onload = () => {
+            imagePreview.src = e.target.result;
+            previewSection.classList.remove('hidden');
+            controlsSection.classList.remove('hidden');
+          };
+          currentImage.onerror = () => {
+            showError('Failed to load image. Please try another file.');
+          };
+          currentImage.src = e.target.result;
+        };
+        
+        reader.onerror = () => {
+          showError('Error reading file. Please try again.');
+        };
+        
+        reader.readAsDataURL(file);
+      }
+      
+      function generateAsciiArt() {
+        if (!currentImage) {
+          showError('Please select an image first.');
+          return;
+        }
+        
+        // Show loading state
+        loadingSection.classList.remove('hidden');
+        resultSection.classList.add('hidden');
+        
+        // Use setTimeout to allow UI to update before processing
+        setTimeout(() => {
+          try {
+            const resolution = parseInt(resolutionSlider.value) / 100;
+            const style = styleSelect.value;
+            const invert = invertCheckbox.checked;
+            
+            // Determine characters to use
+            let chars;
+            if (style === 'custom') {
+              chars = customChars.value || '@#$%&?!;:+=-_';
+            } else {
+              chars = characterSets[style] || characterSets.default;
+            }
+            
+            if (invert) {
+              chars = chars.split('').reverse().join('');
+            }
+            
+            // Process image
+            const { asciiText, width, height } = convertToAscii(currentImage, chars, resolution);
+            
+            // Apply user styles
+            const fontSize = fontSizeSlider.value;
+            const lineHeight = lineHeightSlider.value;
+            const letterSpacing = letterSpacingSlider.value;
+            const bgColor = bgColorPicker.value;
+            
+            // Display result
+            asciiOutput.style.fontSize = `${fontSize}px`;
+            asciiOutput.style.lineHeight = lineHeight;
+            asciiOutput.style.letterSpacing = `${letterSpacing}em`;
+            document.querySelector('.ascii-container').style.backgroundColor = bgColor;
+            
+            asciiOutput.textContent = asciiText;
+            
+            // Hide loading and show result
+            loadingSection.classList.add('hidden');
+            resultSection.classList.remove('hidden');
+            
+            // Scroll to the result
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+          } catch (error) {
+            console.error('Error generating ASCII art:', error);
+            loadingSection.classList.add('hidden');
+            showError('Error generating ASCII art. Please try again with a different image or settings.');
+          }
+        }, 50);
+      }
+      
+      function convertToAscii(image, chars, resolution) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        // Calculate dimensions based on resolution
+        let width = Math.floor(image.width * resolution);
+        let height = Math.floor(image.height * resolution);
+        
+        // Ensure minimum dimensions
+        width = Math.max(width, 10);
+        height = Math.max(height, 10);
+        
+        // Limit maximum dimensions to prevent browser freezing
+        const maxDimension = 300;
+        if (width > maxDimension) {
+          const ratio = maxDimension / width;
+          width = maxDimension;
+          height = Math.floor(height * ratio);
+        }
+        
+        if (height > maxDimension) {
+          const ratio = maxDimension / height;
+          height = maxDimension;
+          width = Math.floor(width * ratio);
+        }
+        
+        // Set canvas dimensions
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw image to canvas
+        ctx.drawImage(image, 0, 0, width, height);
+        
+        // Get image data
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const data = imageData.data;
+        
+        // Convert to ASCII
+        let asciiText = '';
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const offset = (y * width + x) * 4;
+            const r = data[offset];
+            const g = data[offset + 1];
+            const b = data[offset + 2];
+            
+            // Calculate brightness (weighted rgb average)
+            const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            
+            // Map brightness to character
+            const charIndex = Math.floor(brightness * (chars.length - 1));
+            asciiText += chars[charIndex];
+          }
+          asciiText += '\n';
+        }
+        
+        return { asciiText, width, height };
+      }
+      
+      function saveAsImage() {
+        try {
+          const ascii = asciiOutput.textContent;
+          const fontSize = parseInt(fontSizeSlider.value);
+          const lineHeight = parseFloat(lineHeightSlider.value);
+          const letterSpacing = parseFloat(letterSpacingSlider.value);
+          const bgColor = bgColorPicker.value;
+          
+          // Create a canvas with proper dimensions
+          const lines = ascii.split('\n');
+          const maxLineLength = Math.max(...lines.map(line => line.length));
+          
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Set canvas dimensions
+          const charWidth = fontSize * 0.6 * (1 + letterSpacing);
+          const charHeight = fontSize * lineHeight;
+          canvas.width = maxLineLength * charWidth;
+          canvas.height = lines.length * charHeight;
+          
+          // Fill background
+          ctx.fillStyle = bgColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Set text properties
+          ctx.font = `${fontSize}px monospace`;
+          ctx.fillStyle = '#000000';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+          
+          // Draw text
+          lines.forEach((line, lineIndex) => {
+            for (let i = 0; i < line.length; i++) {
+              ctx.fillText(
+                line[i],
+                i * charWidth,
+                lineIndex * charHeight
+              );
+            }
+          });
+          
+          // Convert to data URL and display
+          const dataUrl = canvas.toDataURL('image/png');
+          downloadImage.src = dataUrl;
+          downloadImage.style.display = 'block';
+          saveInstructions.classList.remove('hidden');
+          
+          // Scroll to the save instructions
+          saveInstructions.scrollIntoView({ behavior: 'smooth' });
+        } catch (error) {
+          console.error('Error saving image:', error);
+          showError('Error saving image. Please try again.');
+        }
+      }
+      
+      function copyAsciiText() {
+        try {
+          const asciiText = asciiOutput.textContent;
+          navigator.clipboard.writeText(asciiText)
+            .then(() => {
+              const originalText = copyTextBtn.textContent;
+              copyTextBtn.textContent = 'Copied!';
+              setTimeout(() => {
+                copyTextBtn.textContent = originalText;
+              }, 2000);
+            })
+            .catch(err => {
+              console.error('Failed to copy text:', err);
+              showError('Failed to copy text. Please try again.');
+            });
+        } catch (error) {
+          console.error('Error copying text:', error);
+          showError('Error copying text. Please try again.');
+        }
+      }
+      
+      function resetToNewImage() {
+        currentImage = null;
+        imageInput.value = '';
+        previewSection.classList.add('hidden');
+        controlsSection.classList.add('hidden');
+        resultSection.classList.add('hidden');
+        saveInstructions.classList.add('hidden');
+        downloadImage.style.display = 'none';
+        hideError();
+        
+        // Reset sliders to default values
+        resolutionSlider.value = 100;
+        resolutionValue.textContent = '100';
+        fontSizeSlider.value = 10;
+        fontSizeValue.textContent = '10';
+        lineHeightSlider.value = 1.0;
+        lineHeightValue.textContent = '1.0';
+        letterSpacingSlider.value = 0.1;
+        letterSpacingValue.textContent = '0.1';
+        invertCheckbox.checked = false;
+        bgColorPicker.value = '#ffffff';
+        styleSelect.value = 'default';
+        customCharsContainer.classList.add('hidden');
+        
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      
+      function showError(message) {
+        errorMessage.textContent = message;
+        errorSection.classList.remove('hidden');
+        loadingSection.classList.add('hidden');
+      }
+      
+      function hideError() {
+        errorSection.classList.add('hidden');
+      }
+      
+      function resetError() {
+        hideError();
+      }
+    });
+  </script>
+</body>
+</html>
