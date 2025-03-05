@@ -1,0 +1,4347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enhanced ASCII Art Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --primary-color: #5D5CDE;
+      --light-bg: #FFFFFF;
+      --light-text: #333333;
+      --light-card: #f7f7f7;
+      --light-border: #e1e1e1;
+      --light-hover: #f0f0f0;
+      
+      --dark-bg: #181818;
+      --dark-text: #F5F5F5;
+      --dark-card: #2a2a2a;
+      --dark-border: #3a3a3a;
+      --dark-hover: #303030;
+      
+      --error-color: #e74c3c;
+    }
+    
+    body {
+      transition: background-color 0.3s, color 0.3s;
+    }
+    
+    body.light-mode {
+      background-color: var(--light-bg);
+      color: var(--light-text);
+    }
+    
+    body.dark-mode {
+      background-color: var(--dark-bg);
+      color: var(--dark-text);
+    }
+    
+    .theme-card {
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+    
+    .light-mode .theme-card {
+      background-color: var(--light-card);
+      border-color: var(--light-border);
+    }
+    
+    .dark-mode .theme-card {
+      background-color: var(--dark-card);
+      border-color: var(--dark-border);
+    }
+    
+    .light-mode input, .light-mode select, .light-mode textarea {
+      background-color: var(--light-card);
+      color: var(--light-text);
+      border-color: var(--light-border);
+    }
+    
+    .dark-mode input, .dark-mode select, .dark-mode textarea {
+      background-color: var(--dark-card);
+      color: var(--dark-text);
+      border-color: var(--dark-border);
+    }
+    
+    .light-mode button:not(.primary-btn) {
+      background-color: var(--light-card);
+      color: var(--light-text);
+      border-color: var(--light-border);
+    }
+    
+    .dark-mode button:not(.primary-btn) {
+      background-color: var(--dark-card);
+      color: var(--dark-text);
+      border-color: var(--dark-border);
+    }
+    
+    .slider::-webkit-slider-thumb {
+      background: var(--primary-color);
+    }
+    
+    .slider::-moz-range-thumb {
+      background: var(--primary-color);
+    }
+    
+    .light-mode .color-swatch {
+      border-color: #ddd;
+    }
+    
+    .dark-mode .color-swatch {
+      border-color: #444;
+    }
+    
+    .tab-button {
+      transition: background-color 0.3s, color 0.3s;
+    }
+    
+    .light-mode .tab-button {
+      background-color: #e9e9e9;
+      color: var(--light-text);
+    }
+    
+    .dark-mode .tab-button {
+      background-color: #333;
+      color: var(--dark-text);
+    }
+    
+    .tab-button.active {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    .primary-btn {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 10px;
+      border-radius: 5px;
+      background: #d3d3d3;
+      outline: none;
+      margin: 10px 0;
+      border: 1px solid #aaa;
+    }
+    
+    .dark-mode .slider {
+      background: #555;
+      border-color: #666;
+    }
+    
+    .slider::-webkit-slider-runnable-track {
+      height: 10px;
+      border-radius: 5px;
+    }
+    
+    .slider::-moz-range-track {
+      height: 10px;
+      border-radius: 5px;
+    }
+    
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      background: var(--primary-color);
+      border: 1px solid #777;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    
+    .slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      background: var(--primary-color);
+      border: 1px solid #777;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    
+    .ascii-pre {
+      font-family: monospace;
+      font-size: 10px;
+      line-height: 1;
+      letter-spacing: 0.1em;
+      white-space: pre;
+      text-align: center;
+      overflow: hidden;
+    }
+    
+    #imagePreview, #videoPreview {
+      max-width: 100%;
+      max-height: 300px;
+      margin: 0 auto;
+      display: block;
+    }
+    
+    #asciiOutput {
+      max-width: 100%;
+      overflow: auto;
+    }
+    
+    .ascii-container {
+      display: flex;
+      justify-content: center;
+      max-width: 100%;
+      overflow: auto;
+      background-color: white;
+      min-width: fit-content;
+      margin: 0 auto;
+      position: relative;
+    }
+    
+    .dark-mode .ascii-container {
+      background-color: var(--dark-card);
+    }
+    
+    #downloadImage {
+      display: none;
+    }
+    
+    .loading-spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border-left-color: var(--primary-color);
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .error-msg {
+      color: var(--error-color);
+      font-weight: bold;
+    }
+    
+    .color-swatch {
+      width: 24px;
+      height: 24px;
+      border: 1px solid;
+      border-radius: 4px;
+      display: inline-block;
+      cursor: pointer;
+    }
+    
+    .tab-button {
+      padding: 8px 12px;
+      border-radius: 4px 4px 0 0;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    
+    .tab-content {
+      display: none;
+      padding: 16px;
+      border-radius: 0 4px 4px 4px;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .text-overlay {
+      position: absolute;
+      pointer-events: none;
+      z-index: 10;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }
+    
+    .text-preview {
+      border: 1px dashed #aaa;
+      padding: 10px;
+      margin-top: 10px;
+      min-height: 50px;
+    }
+    
+    .mode-switch {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      background: var(--primary-color);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    .mode-switch label {
+      margin: 0 5px;
+    }
+    
+    /* Toggle switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+    }
+    
+    .switch input { 
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .slider-switch {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 24px;
+    }
+    
+    .slider-switch:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .slider-switch {
+      background-color: var(--primary-color);
+    }
+    
+    input:checked + .slider-switch:before {
+      transform: translateX(26px);
+    }
+    
+    /* Animation styles */
+    .animation-controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .animation-controls button {
+      padding: 5px 10px;
+      border-radius: 4px;
+    }
+    
+    /* Frame gallery styles */
+    .frame-gallery {
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 10px;
+      border: 1px solid var(--light-border);
+      border-radius: 4px;
+      margin-top: 15px;
+    }
+    
+    .dark-mode .frame-gallery {
+      border-color: var(--dark-border);
+    }
+    
+    .frame-item {
+      margin-bottom: 15px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    
+    .dark-mode .frame-item {
+      border-color: #444;
+    }
+    
+    .frame-item:hover {
+      border-color: var(--primary-color);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .frame-preview {
+      overflow: auto;
+      max-height: 150px;
+      margin-bottom: 8px;
+      background-color: #fff;
+    }
+    
+    .dark-mode .frame-preview {
+      background-color: #111;
+    }
+    
+    /* Mobile mode specific styles */
+    .mobile-mode-notice {
+      display: none;
+      background-color: #ffeaa7;
+      color: #5e5e5e;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      border-left: 4px solid #fdcb6e;
+    }
+    
+    .dark-mode .mobile-mode-notice {
+      background-color: #332e1b;
+      color: #f5f5f5;
+      border-left: 4px solid #b18d28;
+    }
+    
+    body.mobile-mode .mobile-mode-notice {
+      display: block;
+    }
+    
+    body.mobile-mode .desktop-only {
+      display: none !important;
+    }
+    
+    body.mobile-mode .mobile-hidden {
+      display: none !important;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 640px) {
+      .control-container {
+        flex-direction: column;
+      }
+      
+      .control-item {
+        width: 100%;
+        margin-bottom: 1rem;
+      }
+      
+      .theme-switches {
+        position: static;
+        margin-bottom: 10px;
+      }
+    }
+  </style>
+</head>
+<body class="p-4 min-h-screen light-mode">
+  <!-- Theme/Mode Switches -->
+  <div class="flex gap-3 absolute top-4 right-4 z-50 theme-switches">
+    <div class="bg-white dark:bg-gray-800 p-2 rounded-lg shadow flex items-center">
+      <span class="mr-2 text-sm">🌙</span>
+      <label class="switch">
+        <input type="checkbox" id="darkModeToggle">
+        <span class="slider-switch"></span>
+      </label>
+      <span class="ml-2 text-sm">☀️</span>
+    </div>
+    
+    <div class="bg-white dark:bg-gray-800 p-2 rounded-lg shadow flex items-center desktop-only">
+      <span class="mr-2 text-sm">Simple</span>
+      <label class="switch">
+        <input type="checkbox" id="simpleModelToggle">
+        <span class="slider-switch"></span>
+      </label>
+      <span class="ml-2 text-sm">Advanced</span>
+    </div>
+  </div>
+
+  <div class="max-w-4xl mx-auto theme-card rounded-xl p-6 shadow-md border mt-12">
+    <h1 class="text-2xl font-bold text-center mb-6">Enhanced ASCII Art Generator</h1>
+    
+    <!-- Mobile mode notice -->
+    <div class="mobile-mode-notice">
+      <p class="font-medium">You're using the simplified mobile view.</p>
+      <p class="text-sm mt-1">For full functionality including video processing and advanced settings, please use a wider window or desktop device.</p>
+    </div>
+    
+    <div class="mb-6">
+      <div class="flex flex-col items-center justify-center border-2 border-dashed border-gray-400 rounded-lg p-4 text-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 transition-colors" id="dropZone">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        <p class="text-sm text-gray-500 mb-2">Drag and drop an image<span class="desktop-only">/video</span> or click to select</p>
+        <div class="flex gap-3">
+          <input type="file" id="imageInput" accept="image/*" class="hidden">
+          <input type="file" id="videoInput" accept="video/*,.gif" class="hidden">
+          <button id="selectImageBtn" class="primary-btn rounded px-4 py-2 text-base">Select Image</button>
+          <button id="selectVideoBtn" class="primary-btn rounded px-4 py-2 text-base desktop-only">Select Video/GIF</button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="previewSection" class="mb-6 hidden">
+      <h2 class="text-xl font-bold mb-2">Media Preview</h2>
+      <div class="flex justify-center">
+        <img id="imagePreview" src="" alt="Preview" class="rounded-lg hidden">
+        <video id="videoPreview" class="rounded-lg hidden desktop-only" loop controls muted></video>
+      </div>
+      <div id="videoWarning" class="hidden mt-2 p-2 bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100 rounded desktop-only">
+        <p class="text-sm"><strong>Warning:</strong> Processing long videos or high-resolution GIFs might cause lag. Consider using shorter clips for better performance.</p>
+      </div>
+    </div>
+    
+    <div id="controlsSection" class="mb-6 hidden">
+      <div id="simpleControls" class="hidden">
+        <h2 class="text-xl font-bold mb-4">Simple Mode</h2>
+        <div class="grid grid-cols-1 gap-4 mb-4">
+          <div>
+            <label for="brightnessSliderSimple" class="block mb-2 font-medium">Brightness: <span id="brightnessValueSimple">1.0</span></label>
+            <input type="range" id="brightnessSliderSimple" class="slider w-full" min="0.1" max="3" step="0.1" value="1.0">
+          </div>
+          <div>
+            <label for="contrastSliderSimple" class="block mb-2 font-medium">Contrast: <span id="contrastValueSimple">1.0</span></label>
+            <input type="range" id="contrastSliderSimple" class="slider w-full" min="0.1" max="3" step="0.1" value="1.0">
+          </div>
+          <div>
+            <label for="letterSpacingSliderSimple" class="block mb-2 font-medium">Letter Spacing: <span id="letterSpacingValueSimple">0.5</span>em</label>
+            <input type="range" id="letterSpacingSliderSimple" class="slider w-full" min="0" max="1" step="0.05" value="0.5">
+          </div>
+          <div>
+            <label for="lineHeightSliderSimple" class="block mb-2 font-medium">Line Height: <span id="lineHeightValueSimple">1.0</span></label>
+            <input type="range" id="lineHeightSliderSimple" class="slider w-full" min="0.5" max="2" step="0.1" value="1.0">
+          </div>
+        </div>
+      </div>
+      
+      <div id="advancedControls">
+        <div class="flex justify-between items-center mb-4 flex-wrap">
+          <h2 class="text-xl font-bold mb-2 md:mb-0">ASCII Art Settings</h2>
+          <div class="flex gap-2 flex-wrap">
+            <div class="relative">
+              <select id="presetSelect" class="px-3 py-2 border rounded-lg text-base">
+                <option value="">Load Preset...</option>
+                <!-- Presets will be populated here -->
+              </select>
+            </div>
+            <button id="savePresetBtn" class="border rounded-lg px-3 py-2 text-base">Save as Preset</button>
+            <button id="exportPresetBtn" class="border rounded-lg px-3 py-2 text-base">Export Presets</button>
+            <button id="importPresetBtn" class="border rounded-lg px-3 py-2 text-base">Import Presets</button>
+          </div>
+        </div>
+        
+        <!-- Tab Navigation -->
+        <div class="flex mb-0 border-b overflow-x-auto">
+          <div class="tab-button active" data-tab="basic">Basic</div>
+          <div class="tab-button" data-tab="adjustments">Adjustments</div>
+          <div class="tab-button" data-tab="color">Color</div>
+          <div class="tab-button" data-tab="text">Text Overlay</div>
+          <div class="tab-button desktop-only" data-tab="animation">Animation</div>
+          <div class="tab-button" data-tab="advanced">Advanced</div>
+        </div>
+        
+        <!-- Tab Content -->
+        <div class="theme-card border border-t-0 rounded-b-lg mb-4">
+          <!-- Basic Tab -->
+          <div id="basic-tab" class="tab-content active">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label for="styleSelect" class="block mb-2 font-medium">Character Style:</label>
+                <select id="styleSelect" class="w-full px-3 py-2 border rounded-lg text-base">
+                  <option value="default">Default (ASCII characters)</option>
+                  <option value="simple">Simple (█▓▒░ )</option>
+                  <option value="blocks">Block Elements (█▉▍▎)</option>
+                  <option value="circles">Circles (●◉◍○)</option>
+                  <option value="rectangles">Rectangles (■□▢▣)</option>
+                  <option value="braille">Braille (⠿⠯⠷⠾⠽)</option>
+                  <option value="lines">Lines (╬╫╪╩╦)</option>
+                  <option value="custom">Custom Characters</option>
+                </select>
+              </div>
+              
+              <div id="customCharsContainer" class="hidden">
+                <label for="customChars" class="block mb-2 font-medium">Custom Characters:</label>
+                <input type="text" id="customChars" class="w-full px-3 py-2 border rounded-lg text-base" placeholder="@#$%&?!;:+=-_" value="@#$%&?!;:+=-_">
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label for="resolutionSlider" class="block mb-2 font-medium">Resolution: <span id="resolutionValue">100</span>%</label>
+                <input type="range" id="resolutionSlider" class="slider w-full" min="10" max="200" value="100">
+              </div>
+              
+              <div>
+                <label for="invertCheckbox" class="font-medium flex items-center cursor-pointer">
+                  <input type="checkbox" id="invertCheckbox" class="mr-2 h-5 w-5">
+                  Invert Colors
+                </label>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="colorModeSelect" class="block mb-2 font-medium">Color Mode:</label>
+                <select id="colorModeSelect" class="w-full px-3 py-2 border rounded-lg text-base">
+                  <option value="greyscale">Greyscale</option>
+                  <option value="color">Colorful ASCII</option>
+                  <option value="palette">Color Palette</option>
+                </select>
+              </div>
+              
+              <div id="colorPaletteSelect" class="hidden">
+                <label for="paletteSelect" class="block mb-2 font-medium">Color Palette:</label>
+                <select id="paletteSelect" class="w-full px-3 py-2 border rounded-lg text-base">
+                  <option value="monochrome">Monochrome (Blue)</option>
+                  <option value="duotone">Duotone (Blue/Orange)</option>
+                  <option value="vintage">Vintage (Sepia)</option>
+                  <option value="pastel">Pastel Colors</option>
+                  <option value="neon">Neon</option>
+                  <option value="cyberpunk">Cyberpunk</option>
+                  <option value="sunset">Sunset</option>
+                  <option value="custom">Custom Palette</option>
+                </select>
+              </div>
+              
+              <div id="customPaletteContainer" class="hidden mt-4 col-span-2">
+                <label class="block mb-2 font-medium">Custom Color Palette:</label>
+                <div id="customPalette" class="flex flex-wrap gap-2 mb-2">
+                  <!-- Color swatches will be added here -->
+                </div>
+                <div class="flex gap-2 items-center">
+                  <input type="color" id="newColorPicker" class="h-8 w-24">
+                  <button id="addColorBtn" class="border px-3 py-1 rounded">Add Color</button>
+                  <button id="clearPaletteBtn" class="border px-3 py-1 rounded">Clear</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Adjustments Tab -->
+          <div id="adjustments-tab" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label for="brightnessSlider" class="block mb-2 font-medium">Brightness: <span id="brightnessValue">1.0</span></label>
+                <input type="range" id="brightnessSlider" class="slider w-full" min="0.1" max="3" step="0.1" value="1.0">
+              </div>
+              
+              <div>
+                <label for="contrastSlider" class="block mb-2 font-medium">Contrast: <span id="contrastValue">1.0</span></label>
+                <input type="range" id="contrastSlider" class="slider w-full" min="0.1" max="3" step="0.1" value="1.0">
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label for="gammaSlider" class="block mb-2 font-medium">Gamma: <span id="gammaValue">1.0</span></label>
+                <input type="range" id="gammaSlider" class="slider w-full" min="0.1" max="3" step="0.1" value="1.0">
+              </div>
+              
+              <div>
+                <label for="saturationSlider" class="block mb-2 font-medium">Saturation: <span id="saturationValue">1.0</span></label>
+                <input type="range" id="saturationSlider" class="slider w-full" min="0" max="3" step="0.1" value="1.0">
+              </div>
+            </div>
+          </div>
+          
+          <!-- Color Tab -->
+          <div id="color-tab" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label for="fontSizeSlider" class="block mb-2 font-medium">Character Size: <span id="fontSizeValue">10</span>px</label>
+                <input type="range" id="fontSizeSlider" class="slider w-full" min="4" max="24" value="10">
+              </div>
+              
+              <div>
+                <label for="lineHeightSlider" class="block mb-2 font-medium">Line Height: <span id="lineHeightValue">1.0</span></label>
+                <input type="range" id="lineHeightSlider" class="slider w-full" min="0.5" max="2" step="0.1" value="1.0">
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="letterSpacingSlider" class="block mb-2 font-medium">Letter Spacing: <span id="letterSpacingValue">0.5</span>em</label>
+                <input type="range" id="letterSpacingSlider" class="slider w-full" min="0" max="1" step="0.05" value="0.5">
+              </div>
+              
+              <div>
+                <label for="bgColorPicker" class="block mb-2 font-medium">Background Color:</label>
+                <input type="color" id="bgColorPicker" class="w-full h-10 rounded-lg" value="#ffffff">
+              </div>
+            </div>
+          </div>
+          
+          <!-- Text Overlay Tab -->
+          <div id="text-tab" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label for="textOverlayMode" class="block mb-2 font-medium">Text Mode:</label>
+                <select id="textOverlayMode" class="w-full px-3 py-2 border rounded-lg text-base">
+                  <option value="direct">Direct Text Overlay</option>
+                  <option value="ascii">ASCII Text Conversion</option>
+                </select>
+              </div>
+              
+              <div>
+                <label for="textFont" class="block mb-2 font-medium">Font:</label>
+                <select id="textFont" class="w-full px-3 py-2 border rounded-lg text-base">
+                  <option value="Consolas">Consolas</option>
+                  <option value="'Comic Sans MS'">Comic Sans</option>
+                  <option value="'Courier New'">Courier New</option>
+                  <option value="'Times New Roman'">Times New Roman</option>
+                  <option value="SimSun">宋体 (SimSun)</option>
+                  <option value="SimHei">黑体 (SimHei)</option>
+                  <option value="YouYuan">圆体 (YouYuan)</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="mb-4">
+              <label for="textInput" class="block mb-2 font-medium">Text:</label>
+              <textarea id="textInput" class="w-full px-3 py-2 border rounded-lg text-base" rows="2" placeholder="Enter your text here"></textarea>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label for="textSizeSlider" class="block mb-2 font-medium">Text Size: <span id="textSizeValue">24</span>px</label>
+                <input type="range" id="textSizeSlider" class="slider w-full" min="8" max="72" value="24">
+              </div>
+              
+              <div>
+                <label for="textColorPicker" class="block mb-2 font-medium">Text Color:</label>
+                <input type="color" id="textColorPicker" class="w-full h-10 rounded-lg" value="#ffffff">
+              </div>
+              
+              <div>
+                <label for="textPosition" class="block mb-2 font-medium">Position:</label>
+                <select id="textPosition" class="w-full px-3 py-2 border rounded-lg text-base">
+                  <option value="top-left">Top Left</option>
+                  <option value="top-center">Top Center</option>
+                  <option value="top-right">Top Right</option>
+                  <option value="middle-left">Middle Left</option>
+                  <option value="middle-center">Middle Center</option>
+                  <option value="middle-right">Middle Right</option>
+                  <option value="bottom-left">Bottom Left</option>
+                  <option value="bottom-center">Bottom Center</option>
+                  <option value="bottom-right">Bottom Right</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="mb-4">
+              <h3 class="font-medium mb-2">Text Preview:</h3>
+              <div class="text-preview relative bg-gray-200 dark:bg-gray-700">
+                <div id="textPreview" class="text-center"></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Animation Tab -->
+          <div id="animation-tab" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label for="fpsSlider" class="block mb-2 font-medium">Frame Rate: <span id="fpsValue">15</span> FPS</label>
+                <input type="range" id="fpsSlider" class="slider w-full" min="1" max="30" value="15">
+              </div>
+              
+              <div>
+                <label for="animResolutionSlider" class="block mb-2 font-medium">Animation Resolution: <span id="animResolutionValue">50</span>%</label>
+                <input type="range" id="animResolutionSlider" class="slider w-full" min="10" max="100" value="50">
+              </div>
+            </div>
+            
+            <div>
+              <label for="skipFramesSlider" class="block mb-2 font-medium">Process every <span id="skipFramesValue">1</span> frame(s)</label>
+              <input type="range" id="skipFramesSlider" class="slider w-full" min="1" max="10" value="1">
+              <p class="text-sm text-gray-500 mt-1">Higher values improve performance but reduce smoothness</p>
+            </div>
+            
+            <div class="mt-4 p-2 bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100 rounded">
+              <p class="text-sm">
+                <strong>Note:</strong> Animation processing may take time depending on your video length and settings. 
+                For best performance, use short videos and lower resolutions.
+              </p>
+            </div>
+          </div>
+          
+          <!-- Advanced Tab -->
+          <div id="advanced-tab" class="tab-content">
+            <div id="ditheringContainer" class="mb-4">
+              <label for="ditheringSelect" class="block mb-2 font-medium">Dithering:</label>
+              <select id="ditheringSelect" class="w-full px-3 py-2 border rounded-lg text-base">
+                <option value="none">None</option>
+                <option value="floydSteinberg">Floyd-Steinberg</option>
+                <option value="bayer">Bayer</option>
+                <option value="minAvgErr">MinAvgErr</option>
+                <option value="burkes">Burkes</option>
+                <option value="sierra">Sierra</option>
+                <option value="stucki">Stucki</option>
+                <option value="atkinson">Atkinson</option>
+              </select>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label for="pixelateCheckbox" class="font-medium flex items-center cursor-pointer">
+                  <input type="checkbox" id="pixelateCheckbox" class="mr-2 h-5 w-5">
+                  Pixelate Image
+                </label>
+              </div>
+              
+              <div>
+                <label for="edgeDetectCheckbox" class="font-medium flex items-center cursor-pointer">
+                  <input type="checkbox" id="edgeDetectCheckbox" class="mr-2 h-5 w-5">
+                  Edge Detection
+                </label>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label for="charRandomizerSlider" class="block mb-2 font-medium">Character Randomizer: <span id="charRandomizerValue">0</span>%</label>
+              <input type="range" id="charRandomizerSlider" class="slider w-full" min="0" max="100" value="0">
+              <p class="text-xs text-gray-500 mt-1">Randomly replaces characters with others from the same character set</p>
+            </div>
+            
+            <div class="mb-4">
+              <label class="block mb-2 font-medium">Brightness Threshold Masking:</label>
+              <div class="flex items-center gap-4 mb-2">
+                <div class="flex-1">
+                  <label class="text-sm block mb-1">Min: <span id="brightnessThresholdMinValue">0</span>%</label>
+                  <input type="range" id="brightnessThresholdMinSlider" class="slider w-full" min="0" max="100" value="0">
+                </div>
+                <div class="flex-1">
+                  <label class="text-sm block mb-1">Max: <span id="brightnessThresholdMaxValue">100</span>%</label>
+                  <input type="range" id="brightnessThresholdMaxSlider" class="slider w-full" min="0" max="100" value="100">
+                </div>
+              </div>
+              <div class="flex items-center gap-2 mb-2">
+                <label for="thresholdMaskModeSelect" class="text-sm">Outside threshold:</label>
+                <select id="thresholdMaskModeSelect" class="px-2 py-1 text-sm rounded border">
+                  <option value="transparent">Transparent</option>
+                  <option value="space">Space Character</option>
+                  <option value="custom">Custom Character</option>
+                </select>
+                <input type="text" id="thresholdMaskCustomChar" class="w-12 px-2 py-1 text-sm border rounded hidden" maxlength="1" value=" ">
+              </div>
+              <p class="text-xs text-gray-500 mt-1">Only converts pixels within the brightness threshold range to ASCII</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-6 flex justify-center">
+        <button id="generateBtn" class="primary-btn rounded-lg px-6 py-3 text-lg font-semibold">Generate ASCII Art</button>
+      </div>
+    </div>
+    
+    <div id="loadingSection" class="flex flex-col items-center justify-center py-8 hidden">
+      <div class="loading-spinner mb-4"></div>
+      <p class="text-lg">Generating ASCII art...</p>
+      <p id="loadingProgress" class="text-sm mt-2"></p>
+    </div>
+    
+    <div id="resultSection" class="hidden">
+      <h2 class="text-xl font-bold mb-4">ASCII Art Result</h2>
+      
+      <div class="ascii-container p-4 rounded-lg border mb-4 relative">
+        <div id="asciiOutput" class="ascii-pre"></div>
+        <div id="textOverlayContainer" class="absolute inset-0 pointer-events-none"></div>
+      </div>
+      
+      <div id="animationControls" class="animation-controls hidden">
+        <button id="playPauseBtn" class="primary-btn">Pause</button>
+        <button id="restartBtn" class="border">Restart</button>
+        <button id="saveFramesBtn" class="primary-btn">View Frames</button>
+      </div>
+      
+      <div id="frameGallery" class="frame-gallery hidden">
+        <h3 class="text-lg font-medium mb-3">All Frames</h3>
+        <p class="mb-3 text-sm">Right-click on any frame and select "Save image as..." to download it. Or save each individual frame by clicking the "Save Frame" button.</p>
+        <div id="framesContainer">
+          <!-- Frames will be inserted here -->
+        </div>
+      </div>
+      
+      <div class="flex flex-wrap justify-center gap-4 mt-4">
+        <button id="saveImageBtn" class="primary-btn rounded-lg px-4 py-2 font-medium">Save as Image</button>
+        <button id="copyTextBtn" class="border rounded-lg px-4 py-2 font-medium">Copy ASCII Text</button>
+        <button id="newImageBtn" class="border rounded-lg px-4 py-2 font-medium">Process New Media</button>
+      </div>
+      
+      <div id="saveInstructions" class="mt-4 text-center text-sm hidden">
+        <p>Right-click on the image below and select "Save image as..." to download it.</p>
+        <img id="downloadImage" src="" alt="ASCII Art" class="mt-2 mx-auto border rounded-lg">
+      </div>
+      
+      <!-- Hidden toy feature button (only visible in greyscale mode) -->
+      <div id="toyFeatureContainer" class="hidden fixed bottom-4 right-4 opacity-20 hover:opacity-100 transition-opacity">
+        <button id="toyWithCreationBtn" class="px-2 py-1 text-xs bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 rounded border border-gray-300 dark:border-gray-600">
+          toy with your creation
+        </button>
+      </div>
+    </div>
+    
+    <div id="errorSection" class="hidden py-4 text-center">
+      <p id="errorMessage" class="error-msg"></p>
+      <button id="resetErrorBtn" class="mt-4 border rounded-lg px-4 py-2 font-medium">Try Again</button>
+    </div>
+    
+    <!-- Save Preset Modal -->
+    <div id="savePresetModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
+        <h3 class="text-xl font-bold mb-4">Save Current Settings as Preset</h3>
+        <div class="mb-4">
+          <label for="presetName" class="block mb-2 font-medium">Preset Name:</label>
+          <input type="text" id="presetName" class="w-full px-3 py-2 border rounded-lg text-base" placeholder="My Preset">
+        </div>
+        <div class="flex justify-end gap-2">
+          <button id="cancelSavePresetBtn" class="border rounded-lg px-4 py-2">Cancel</button>
+          <button id="confirmSavePresetBtn" class="primary-btn rounded-lg px-4 py-2">Save</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Import Preset Modal -->
+    <div id="importPresetModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
+        <h3 class="text-xl font-bold mb-4">Import Presets</h3>
+        <div class="mb-4">
+          <label for="presetJSON" class="block mb-2 font-medium">Paste preset JSON:</label>
+          <textarea id="presetJSON" class="w-full px-3 py-2 border rounded-lg text-base h-40" placeholder='{"presetName": {...}}' spellcheck="false"></textarea>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button id="cancelImportPresetBtn" class="border rounded-lg px-4 py-2">Cancel</button>
+          <button id="confirmImportPresetBtn" class="primary-btn rounded-lg px-4 py-2">Import</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // DOM Elements - Core
+      const imageInput = document.getElementById('imageInput');
+      const videoInput = document.getElementById('videoInput');
+      const selectImageBtn = document.getElementById('selectImageBtn');
+      const selectVideoBtn = document.getElementById('selectVideoBtn');
+      const dropZone = document.getElementById('dropZone');
+      const imagePreview = document.getElementById('imagePreview');
+      const videoPreview = document.getElementById('videoPreview');
+      const videoWarning = document.getElementById('videoWarning');
+      const previewSection = document.getElementById('previewSection');
+      const controlsSection = document.getElementById('controlsSection');
+      const simpleControls = document.getElementById('simpleControls');
+      const advancedControls = document.getElementById('advancedControls');
+      const styleSelect = document.getElementById('styleSelect');
+      const customCharsContainer = document.getElementById('customCharsContainer');
+      const customChars = document.getElementById('customChars');
+      const resolutionSlider = document.getElementById('resolutionSlider');
+      const resolutionValue = document.getElementById('resolutionValue');
+      const fontSizeSlider = document.getElementById('fontSizeSlider');
+      const fontSizeValue = document.getElementById('fontSizeValue');
+      const lineHeightSlider = document.getElementById('lineHeightSlider');
+      const lineHeightValue = document.getElementById('lineHeightValue');
+      const letterSpacingSlider = document.getElementById('letterSpacingSlider');
+      const letterSpacingValue = document.getElementById('letterSpacingValue');
+      const invertCheckbox = document.getElementById('invertCheckbox');
+      const bgColorPicker = document.getElementById('bgColorPicker');
+      const generateBtn = document.getElementById('generateBtn');
+      const loadingSection = document.getElementById('loadingSection');
+      const loadingProgress = document.getElementById('loadingProgress');
+      const resultSection = document.getElementById('resultSection');
+      const asciiOutput = document.getElementById('asciiOutput');
+      const saveImageBtn = document.getElementById('saveImageBtn');
+      const copyTextBtn = document.getElementById('copyTextBtn');
+      const newImageBtn = document.getElementById('newImageBtn');
+      const downloadImage = document.getElementById('downloadImage');
+      const saveInstructions = document.getElementById('saveInstructions');
+      const errorSection = document.getElementById('errorSection');
+      const errorMessage = document.getElementById('errorMessage');
+      const resetErrorBtn = document.getElementById('resetErrorBtn');
+      
+      // DOM Elements - New Features
+      const contrastSlider = document.getElementById('contrastSlider');
+      const contrastValue = document.getElementById('contrastValue');
+      const brightnessSlider = document.getElementById('brightnessSlider');
+      const brightnessValue = document.getElementById('brightnessValue');
+      const saturationSlider = document.getElementById('saturationSlider');
+      const saturationValue = document.getElementById('saturationValue');
+      const gammaSlider = document.getElementById('gammaSlider');
+      const gammaValue = document.getElementById('gammaValue');
+      const colorModeSelect = document.getElementById('colorModeSelect');
+      const ditheringSelect = document.getElementById('ditheringSelect');
+      const ditheringContainer = document.getElementById('ditheringContainer');
+      const pixelateCheckbox = document.getElementById('pixelateCheckbox');
+      const edgeDetectCheckbox = document.getElementById('edgeDetectCheckbox');
+      const charRandomizerSlider = document.getElementById('charRandomizerSlider');
+      const charRandomizerValue = document.getElementById('charRandomizerValue');
+      const brightnessThresholdMinSlider = document.getElementById('brightnessThresholdMinSlider');
+      const brightnessThresholdMinValue = document.getElementById('brightnessThresholdMinValue');
+      const brightnessThresholdMaxSlider = document.getElementById('brightnessThresholdMaxSlider');
+      const brightnessThresholdMaxValue = document.getElementById('brightnessThresholdMaxValue');
+      const thresholdMaskModeSelect = document.getElementById('thresholdMaskModeSelect');
+      const thresholdMaskCustomChar = document.getElementById('thresholdMaskCustomChar');
+      const colorPaletteSelect = document.getElementById('colorPaletteSelect');
+      const paletteSelect = document.getElementById('paletteSelect');
+      const customPaletteContainer = document.getElementById('customPaletteContainer');
+      const customPalette = document.getElementById('customPalette');
+      const newColorPicker = document.getElementById('newColorPicker');
+      const addColorBtn = document.getElementById('addColorBtn');
+      const clearPaletteBtn = document.getElementById('clearPaletteBtn');
+      
+      // DOM Elements - Simple Mode
+      const simpleModelToggle = document.getElementById('simpleModelToggle');
+      const brightnessSliderSimple = document.getElementById('brightnessSliderSimple');
+      const brightnessValueSimple = document.getElementById('brightnessValueSimple');
+      const contrastSliderSimple = document.getElementById('contrastSliderSimple');
+      const contrastValueSimple = document.getElementById('contrastValueSimple');
+      const letterSpacingSliderSimple = document.getElementById('letterSpacingSliderSimple');
+      const letterSpacingValueSimple = document.getElementById('letterSpacingValueSimple');
+      const lineHeightSliderSimple = document.getElementById('lineHeightSliderSimple');
+      const lineHeightValueSimple = document.getElementById('lineHeightValueSimple');
+      
+      // DOM Elements - Text Overlay
+      const textOverlayMode = document.getElementById('textOverlayMode');
+      const textFont = document.getElementById('textFont');
+      const textInput = document.getElementById('textInput');
+      const textSizeSlider = document.getElementById('textSizeSlider');
+      const textSizeValue = document.getElementById('textSizeValue');
+      const textColorPicker = document.getElementById('textColorPicker');
+      const textPosition = document.getElementById('textPosition');
+      const textPreview = document.getElementById('textPreview');
+      const textOverlayContainer = document.getElementById('textOverlayContainer');
+      
+      // DOM Elements - Animation
+      const fpsSlider = document.getElementById('fpsSlider');
+      const fpsValue = document.getElementById('fpsValue');
+      const animResolutionSlider = document.getElementById('animResolutionSlider');
+      const animResolutionValue = document.getElementById('animResolutionValue');
+      const skipFramesSlider = document.getElementById('skipFramesSlider');
+      const skipFramesValue = document.getElementById('skipFramesValue');
+      const animationControls = document.getElementById('animationControls');
+      const playPauseBtn = document.getElementById('playPauseBtn');
+      const restartBtn = document.getElementById('restartBtn');
+      const saveFramesBtn = document.getElementById('saveFramesBtn');
+      const frameGallery = document.getElementById('frameGallery');
+      const framesContainer = document.getElementById('framesContainer');
+      
+      // DOM Elements - Dark Mode
+      const darkModeToggle = document.getElementById('darkModeToggle');
+      
+      // DOM Elements - Presets
+      const presetSelect = document.getElementById('presetSelect');
+      const savePresetBtn = document.getElementById('savePresetBtn');
+      const exportPresetBtn = document.getElementById('exportPresetBtn');
+      const importPresetBtn = document.getElementById('importPresetBtn');
+      const savePresetModal = document.getElementById('savePresetModal');
+      const presetName = document.getElementById('presetName');
+      const confirmSavePresetBtn = document.getElementById('confirmSavePresetBtn');
+      const cancelSavePresetBtn = document.getElementById('cancelSavePresetBtn');
+      const importPresetModal = document.getElementById('importPresetModal');
+      const presetJSON = document.getElementById('presetJSON');
+      const confirmImportPresetBtn = document.getElementById('confirmImportPresetBtn');
+      const cancelImportPresetBtn = document.getElementById('cancelImportPresetBtn');
+      
+      // Tab Navigation
+      const tabButtons = document.querySelectorAll('.tab-button');
+      const tabContents = document.querySelectorAll('.tab-content');
+      
+      tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const tabName = button.dataset.tab;
+          
+          // Hide all tabs
+          tabButtons.forEach(btn => btn.classList.remove('active'));
+          tabContents.forEach(content => content.classList.remove('active'));
+          
+          // Show active tab
+          button.classList.add('active');
+          document.getElementById(`${tabName}-tab`).classList.add('active');
+        });
+      });
+      
+      // Character sets for different styles
+      const characterSets = {
+        default: '@%#*+=-:. ',
+        simple: '█▓▒░ ',
+        blocks: '█▉▊▋▌▍▎▏ ',
+        circles: '●◉◍◎○◌ ',
+        rectangles: '■□▣▢▤▥▦▧▨▩ ',
+        braille: '⠿⠯⠷⠾⠽⠮⠭⠕⠃⠂⠁ ',
+        lines: '╬╫╪╩╦╠╣╔╗╚╝║═ .'
+      };
+      
+      // Color palettes
+      const colorPalettes = {
+        monochrome: ['#000033', '#000066', '#000099', '#0000CC', '#0000FF', '#3333FF', '#6666FF', '#9999FF', '#CCCCFF', '#FFFFFF'],
+        duotone: ['#003366', '#005699', '#0077CC', '#0099FF', '#33AAFF', '#66BBFF', '#99CCFF', '#CCDDFF', '#FFCC99', '#FF9966', '#FF6633', '#FF3300', '#CC2900', '#991F00'],
+        vintage: ['#704214', '#8C5E2A', '#A57C52', '#C2A07E', '#DBCDBF', '#F5EEE5', '#F2EEE2', '#EBA46B', '#D9985F', '#A86940', '#7E4F32'],
+        pastel: ['#FADDD7', '#F9C0BB', '#F7A399', '#F99B83', '#E3D8F1', '#D2BDE7', '#C4A7DE', '#D8F1E9', '#B8E6D9', '#A5DDCB', '#95D3BE'],
+        neon: ['#FF00FF', '#FF00CC', '#CC00FF', '#9900FF', '#00FFFF', '#00CCFF', '#00FFCC', '#33FF00', '#CCFF00', '#FFFF00', '#FF3300'],
+        cyberpunk: ['#f72585', '#b5179e', '#7209b7', '#560bad', '#480ca8', '#3a0ca3', '#3f37c9', '#4361ee', '#4895ef', '#4cc9f0'],
+        sunset: ['#ff7b00', '#ff8800', '#ff9500', '#ffa200', '#ffaa00', '#ffb700', '#ffc300', '#ffd000', '#ffdd00', '#ffea00']
+      };
+      
+      // State
+      let currentImage = null;
+      let currentVideo = null;
+      let userPalette = [];
+      let asciiFrames = [];
+      let framePreviews = []; // To store frame preview images for saving
+      let currentFrameIndex = 0;
+      let animationPlaying = false;
+      let animationTimer = null;
+      let mediaType = 'image'; // 'image' or 'video'
+      let inMobileMode = false; // Track if we're in mobile mode
+      
+      // In-memory preset storage (since localStorage is not available in sandbox)
+      let savedPresets = {};
+      
+      // Dark Mode
+      darkModeToggle.addEventListener('change', () => {
+        if (darkModeToggle.checked) {
+          document.body.classList.remove('light-mode');
+          document.body.classList.add('dark-mode');
+        } else {
+          document.body.classList.remove('dark-mode');
+          document.body.classList.add('light-mode');
+        }
+      });
+      
+      // Window Resize Handler for Mobile Mode
+      function checkMobileMode() {
+        const aspectRatio = window.innerWidth / window.innerHeight;
+        console.log('Checking mobile mode, aspect ratio:', aspectRatio);
+        
+        if (aspectRatio <= 0.5 && !inMobileMode) {
+          console.log('Switching to mobile mode');
+          // Switch to mobile mode
+          inMobileMode = true;
+          document.body.classList.add('mobile-mode');
+          
+          // Force switch to simple mode
+          simpleModelToggle.checked = false;
+          simpleControls.classList.remove('hidden');
+          advancedControls.classList.add('hidden');
+          
+          // Hide video-related elements in mobile mode
+          videoPreview.classList.add('hidden');
+          videoWarning.classList.add('hidden');
+          
+          // If current media is video, reset to default state
+          if (mediaType === 'video') {
+            resetToNewImage();
+          }
+        } else if (aspectRatio > 0.5 && inMobileMode) {
+          console.log('Switching out of mobile mode');
+          // Switch out of mobile mode
+          inMobileMode = false;
+          document.body.classList.remove('mobile-mode');
+          
+          // Switch to advanced mode by default when exiting mobile mode
+          simpleModelToggle.checked = true;
+          simpleControls.classList.add('hidden');
+          advancedControls.classList.remove('hidden');
+        }
+      }
+      
+      // Check initial window size after a short delay to ensure all elements are loaded
+      setTimeout(checkMobileMode, 100);
+      
+      // Add resize listener with debounce to avoid excessive calls
+      let resizeTimer;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          console.log('Window resize detected, running checkMobileMode');
+          checkMobileMode();
+        }, 100);
+      });
+      
+      // Force-check mobile mode on orientation change (better mobile support)
+      window.addEventListener('orientationchange', () => {
+        console.log('Orientation change detected');
+        // Wait a moment for screen dimensions to update
+        setTimeout(checkMobileMode, 200);
+      });
+      
+      // Simple/Advanced Mode Toggle
+      simpleModelToggle.addEventListener('change', () => {
+        if (simpleModelToggle.checked) { // Advanced mode
+          simpleControls.classList.add('hidden');
+          advancedControls.classList.remove('hidden');
+        } else { // Simple mode
+          simpleControls.classList.remove('hidden');
+          advancedControls.classList.add('hidden');
+          
+          // Sync values from advanced to simple sliders
+          brightnessSliderSimple.value = brightnessSlider.value;
+          brightnessValueSimple.textContent = brightnessValue.textContent;
+          
+          contrastSliderSimple.value = contrastSlider.value;
+          contrastValueSimple.textContent = contrastValue.textContent;
+          
+          letterSpacingSliderSimple.value = letterSpacingSlider.value;
+          letterSpacingValueSimple.textContent = letterSpacingValue.textContent;
+          
+          lineHeightSliderSimple.value = lineHeightSlider.value;
+          lineHeightValueSimple.textContent = lineHeightValue.textContent;
+        }
+      });
+      
+      // Sync values between simple and advanced mode
+      brightnessSliderSimple.addEventListener('input', () => {
+        brightnessValueSimple.textContent = brightnessSliderSimple.value;
+        brightnessSlider.value = brightnessSliderSimple.value;
+        brightnessValue.textContent = brightnessSliderSimple.value;
+      });
+      
+      brightnessSlider.addEventListener('input', () => {
+        brightnessValue.textContent = brightnessSlider.value;
+        brightnessSliderSimple.value = brightnessSlider.value;
+        brightnessValueSimple.textContent = brightnessSlider.value;
+      });
+      
+      contrastSliderSimple.addEventListener('input', () => {
+        contrastValueSimple.textContent = contrastSliderSimple.value;
+        contrastSlider.value = contrastSliderSimple.value;
+        contrastValue.textContent = contrastSliderSimple.value;
+      });
+      
+      contrastSlider.addEventListener('input', () => {
+        contrastValue.textContent = contrastSlider.value;
+        contrastSliderSimple.value = contrastSlider.value;
+        contrastValueSimple.textContent = contrastSlider.value;
+      });
+      
+      letterSpacingSliderSimple.addEventListener('input', () => {
+        letterSpacingValueSimple.textContent = letterSpacingSliderSimple.value;
+        letterSpacingSlider.value = letterSpacingSliderSimple.value;
+        letterSpacingValue.textContent = letterSpacingSliderSimple.value;
+      });
+      
+      letterSpacingSlider.addEventListener('input', () => {
+        letterSpacingValue.textContent = letterSpacingSlider.value;
+        letterSpacingSliderSimple.value = letterSpacingSlider.value;
+        letterSpacingValueSimple.textContent = letterSpacingSlider.value;
+      });
+      
+      lineHeightSliderSimple.addEventListener('input', () => {
+        lineHeightValueSimple.textContent = lineHeightSliderSimple.value;
+        lineHeightSlider.value = lineHeightSliderSimple.value;
+        lineHeightValue.textContent = lineHeightSliderSimple.value;
+      });
+      
+      lineHeightSlider.addEventListener('input', () => {
+        lineHeightValue.textContent = lineHeightSlider.value;
+        lineHeightSliderSimple.value = lineHeightSlider.value;
+        lineHeightValueSimple.textContent = lineHeightSlider.value;
+      });
+      
+      // Event Listeners for media selection
+      selectImageBtn.addEventListener('click', () => imageInput.click());
+      selectVideoBtn.addEventListener('click', () => videoInput.click());
+      
+      imageInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+          mediaType = 'image';
+          handleFile(e.target.files[0]);
+        }
+      });
+      
+      videoInput.addEventListener('change', (e) => {
+        if (e.target.files.length && !inMobileMode) {
+          mediaType = 'video';
+          handleFile(e.target.files[0]);
+        } else if (inMobileMode) {
+          showError('Video processing is not available in mobile mode. Please use a wider screen or desktop device.');
+        }
+      });
+      
+      // Drag and drop functionality
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('bg-gray-500', 'bg-opacity-10');
+      });
+      
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('bg-gray-500', 'bg-opacity-10');
+      });
+      
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('bg-gray-500', 'bg-opacity-10');
+        
+        if (e.dataTransfer.files.length) {
+          const file = e.dataTransfer.files[0];
+          
+          if (file.type.match('image.*')) {
+            mediaType = 'image';
+            handleFile(file);
+          } else if (file.type.match('video.*') || file.name.toLowerCase().endsWith('.gif')) {
+            if (!inMobileMode) {
+              mediaType = 'video';
+              handleFile(file);
+            } else {
+              showError('Video processing is not available in mobile mode. Please use a wider screen or desktop device.');
+            }
+          } else {
+            showError('Please select an image, video, or GIF file.');
+          }
+        }
+      });
+      
+      // Update Sliders and Settings
+      styleSelect.addEventListener('change', () => {
+        if (styleSelect.value === 'custom') {
+          customCharsContainer.classList.remove('hidden');
+        } else {
+          customCharsContainer.classList.add('hidden');
+        }
+        
+        // Auto-enable invert for rectangles style
+        if (styleSelect.value === 'rectangles') {
+          invertCheckbox.checked = true;
+        }
+      });
+      
+      // Color Mode Selection
+      colorModeSelect.addEventListener('change', () => {
+        // Check if we should show/hide the toy feature button when mode changes
+        updateToyFeatureVisibility();
+        
+        // Disable dithering when using color mode
+        if (colorModeSelect.value === 'color' || colorModeSelect.value === 'palette') {
+          ditheringSelect.value = 'none';
+          ditheringContainer.classList.add('opacity-50');
+          ditheringSelect.disabled = true;
+          
+          const warningDiv = document.getElementById('ditheringWarning') || document.createElement('div');
+          warningDiv.id = 'ditheringWarning';
+          warningDiv.className = 'text-xs text-yellow-600 dark:text-yellow-400 mt-1';
+          warningDiv.textContent = 'Dithering is not compatible with color modes';
+          if (!document.getElementById('ditheringWarning')) {
+            ditheringContainer.appendChild(warningDiv);
+          }
+        } else {
+          ditheringContainer.classList.remove('opacity-50');
+          ditheringSelect.disabled = false;
+          const warningDiv = document.getElementById('ditheringWarning');
+          if (warningDiv) {
+            warningDiv.remove();
+          }
+        }
+        
+        // Show/hide color palette selection
+        if (colorModeSelect.value === 'palette') {
+          colorPaletteSelect.classList.remove('hidden');
+        } else {
+          colorPaletteSelect.classList.add('hidden');
+          customPaletteContainer.classList.add('hidden');
+        }
+      });
+      
+      // Color Palette Selection
+      paletteSelect.addEventListener('change', () => {
+        if (paletteSelect.value === 'custom') {
+          customPaletteContainer.classList.remove('hidden');
+          renderCustomPalette();
+        } else {
+          customPaletteContainer.classList.add('hidden');
+        }
+      });
+      
+      // Add Color to Custom Palette
+      addColorBtn.addEventListener('click', () => {
+        const color = newColorPicker.value;
+        userPalette.push(color);
+        renderCustomPalette();
+      });
+      
+      // Clear Custom Palette
+      clearPaletteBtn.addEventListener('click', () => {
+        userPalette = [];
+        renderCustomPalette();
+      });
+      
+      // Save Frames Button
+      saveFramesBtn.addEventListener('click', () => {
+        if (asciiFrames.length > 0) {
+          showFrameGallery();
+        }
+      });
+      
+      // Text Overlay Preview
+      textInput.addEventListener('input', updateTextPreview);
+      textFont.addEventListener('change', updateTextPreview);
+      textSizeSlider.addEventListener('input', () => {
+        textSizeValue.textContent = textSizeSlider.value;
+        updateTextPreview();
+      });
+      textColorPicker.addEventListener('change', updateTextPreview);
+      textPosition.addEventListener('change', updateTextPreview);
+      textOverlayMode.addEventListener('change', updateTextPreview);
+      
+      function updateTextPreview() {
+        const text = textInput.value;
+        const font = textFont.value;
+        const size = textSizeSlider.value;
+        const color = textColorPicker.value;
+        const mode = textOverlayMode.value;
+        
+        if (mode === 'direct') {
+          textPreview.style.fontFamily = font;
+          textPreview.style.fontSize = `${size}px`;
+          textPreview.style.color = color;
+          textPreview.innerHTML = text;
+        } else {
+          // ASCII text conversion preview - create real ASCII art from text
+          const asciiText = convertTextToAscii(text);
+          textPreview.style.fontFamily = 'monospace';
+          textPreview.style.fontSize = `${Math.max(8, size / 3)}px`;
+          textPreview.style.color = color;
+          textPreview.style.lineHeight = '1';
+          textPreview.style.letterSpacing = '0';
+          textPreview.style.whiteSpace = 'pre';
+          textPreview.innerHTML = asciiText;
+        }
+      }
+      
+      // Function to convert text to ASCII art
+      function convertTextToAscii(text) {
+        if (!text) return '';
+        
+        // Simple ASCII art font definition (limited set of characters)
+        const asciiFont = {
+          'A': [
+            '  █  ',
+            ' █ █ ',
+            '█   █',
+            '█████',
+            '█   █'
+          ],
+          'B': [
+            '████ ',
+            '█   █',
+            '████ ',
+            '█   █',
+            '████ '
+          ],
+          'C': [
+            ' ████',
+            '█    ',
+            '█    ',
+            '█    ',
+            ' ████'
+          ],
+          'D': [
+            '████ ',
+            '█   █',
+            '█   █',
+            '█   █',
+            '████ '
+          ],
+          'E': [
+            '█████',
+            '█    ',
+            '███  ',
+            '█    ',
+            '█████'
+          ],
+          'F': [
+            '█████',
+            '█    ',
+            '███  ',
+            '█    ',
+            '█    '
+          ],
+          'G': [
+            ' ████',
+            '█    ',
+            '█  ██',
+            '█   █',
+            ' ████'
+          ],
+          'H': [
+            '█   █',
+            '█   █',
+            '█████',
+            '█   █',
+            '█   █'
+          ],
+          'I': [
+            '█████',
+            '  █  ',
+            '  █  ',
+            '  █  ',
+            '█████'
+          ],
+          'J': [
+            '█████',
+            '    █',
+            '    █',
+            '█   █',
+            ' ███ '
+          ],
+          'K': [
+            '█   █',
+            '█  █ ',
+            '███  ',
+            '█  █ ',
+            '█   █'
+          ],
+          'L': [
+            '█    ',
+            '█    ',
+            '█    ',
+            '█    ',
+            '█████'
+          ],
+          'M': [
+            '█   █',
+            '██ ██',
+            '█ █ █',
+            '█   █',
+            '█   █'
+          ],
+          'N': [
+            '█   █',
+            '██  █',
+            '█ █ █',
+            '█  ██',
+            '█   █'
+          ],
+          'O': [
+            ' ███ ',
+            '█   █',
+            '█   █',
+            '█   █',
+            ' ███ '
+          ],
+          'P': [
+            '████ ',
+            '█   █',
+            '████ ',
+            '█    ',
+            '█    '
+          ],
+          'Q': [
+            ' ███ ',
+            '█   █',
+            '█   █',
+            '█  ██',
+            ' ████'
+          ],
+          'R': [
+            '████ ',
+            '█   █',
+            '████ ',
+            '█  █ ',
+            '█   █'
+          ],
+          'S': [
+            ' ████',
+            '█    ',
+            ' ███ ',
+            '    █',
+            '████ '
+          ],
+          'T': [
+            '█████',
+            '  █  ',
+            '  █  ',
+            '  █  ',
+            '  █  '
+          ],
+          'U': [
+            '█   █',
+            '█   █',
+            '█   █',
+            '█   █',
+            ' ███ '
+          ],
+          'V': [
+            '█   █',
+            '█   █',
+            '█   █',
+            ' █ █ ',
+            '  █  '
+          ],
+          'W': [
+            '█   █',
+            '█   █',
+            '█ █ █',
+            '██ ██',
+            '█   █'
+          ],
+          'X': [
+            '█   █',
+            ' █ █ ',
+            '  █  ',
+            ' █ █ ',
+            '█   █'
+          ],
+          'Y': [
+            '█   █',
+            ' █ █ ',
+            '  █  ',
+            '  █  ',
+            '  █  '
+          ],
+          'Z': [
+            '█████',
+            '   █ ',
+            '  █  ',
+            ' █   ',
+            '█████'
+          ],
+          '0': [
+            ' ███ ',
+            '█   █',
+            '█   █',
+            '█   █',
+            ' ███ '
+          ],
+          '1': [
+            '  █  ',
+            ' ██  ',
+            '  █  ',
+            '  █  ',
+            '█████'
+          ],
+          '2': [
+            ' ███ ',
+            '█   █',
+            '  ██ ',
+            ' █   ',
+            '█████'
+          ],
+          '3': [
+            '████ ',
+            '    █',
+            ' ███ ',
+            '    █',
+            '████ '
+          ],
+          '4': [
+            '█   █',
+            '█   █',
+            '█████',
+            '    █',
+            '    █'
+          ],
+          '5': [
+            '█████',
+            '█    ',
+            '████ ',
+            '    █',
+            '████ '
+          ],
+          '6': [
+            ' ███ ',
+            '█    ',
+            '████ ',
+            '█   █',
+            ' ███ '
+          ],
+          '7': [
+            '█████',
+            '   █ ',
+            '  █  ',
+            ' █   ',
+            '█    '
+          ],
+          '8': [
+            ' ███ ',
+            '█   █',
+            ' ███ ',
+            '█   █',
+            ' ███ '
+          ],
+          '9': [
+            ' ███ ',
+            '█   █',
+            ' ████',
+            '    █',
+            ' ███ '
+          ],
+          ' ': [
+            '     ',
+            '     ',
+            '     ',
+            '     ',
+            '     '
+          ],
+          '.': [
+            '     ',
+            '     ',
+            '     ',
+            '     ',
+            '  █  '
+          ],
+          ',': [
+            '     ',
+            '     ',
+            '     ',
+            '  █  ',
+            ' █   '
+          ],
+          '!': [
+            '  █  ',
+            '  █  ',
+            '  █  ',
+            '     ',
+            '  █  '
+          ],
+          '?': [
+            ' ███ ',
+            '█   █',
+            '  ██ ',
+            '     ',
+            '  █  '
+          ],
+          ':': [
+            '     ',
+            '  █  ',
+            '     ',
+            '  █  ',
+            '     '
+          ],
+          ';': [
+            '     ',
+            '  █  ',
+            '     ',
+            '  █  ',
+            ' █   '
+          ],
+          '-': [
+            '     ',
+            '     ',
+            '█████',
+            '     ',
+            '     '
+          ],
+          '_': [
+            '     ',
+            '     ',
+            '     ',
+            '     ',
+            '█████'
+          ],
+          '+': [
+            '     ',
+            '  █  ',
+            '█████',
+            '  █  ',
+            '     '
+          ],
+          '=': [
+            '     ',
+            '█████',
+            '     ',
+            '█████',
+            '     '
+          ],
+          '/': [
+            '    █',
+            '   █ ',
+            '  █  ',
+            ' █   ',
+            '█    '
+          ],
+          '\\': [
+            '█    ',
+            ' █   ',
+            '  █  ',
+            '   █ ',
+            '    █'
+          ],
+          '(': [
+            '  █  ',
+            ' █   ',
+            ' █   ',
+            ' █   ',
+            '  █  '
+          ],
+          ')': [
+            '  █  ',
+            '   █ ',
+            '   █ ',
+            '   █ ',
+            '  █  '
+          ],
+          '[': [
+            ' ███ ',
+            ' █   ',
+            ' █   ',
+            ' █   ',
+            ' ███ '
+          ],
+          ']': [
+            ' ███ ',
+            '   █ ',
+            '   █ ',
+            '   █ ',
+            ' ███ '
+          ],
+          '*': [
+            '     ',
+            '█ █ █',
+            ' ███ ',
+            '█ █ █',
+            '     '
+          ],
+          '&': [
+            ' ██  ',
+            '█  █ ',
+            ' ██ █',
+            '█  █ ',
+            ' ██ █'
+          ]
+        };
+        
+        // Uppercase the text and handle unsupported characters
+        text = text.toUpperCase();
+        
+        // Calculate ASCII art representation
+        const lines = ['', '', '', '', ''];
+        
+        for (let i = 0; i < text.length; i++) {
+          const char = text[i];
+          const charPattern = asciiFont[char] || asciiFont[' ']; // Use space for unsupported chars
+          
+          for (let line = 0; line < 5; line++) {
+            lines[line] += charPattern[line] + ' ';
+          }
+        }
+        
+        return lines.join('\n');
+      }
+      
+      // Animation Controls
+      fpsSlider.addEventListener('input', () => {
+        fpsValue.textContent = fpsSlider.value;
+      });
+      
+      animResolutionSlider.addEventListener('input', () => {
+        animResolutionValue.textContent = animResolutionSlider.value;
+      });
+      
+      skipFramesSlider.addEventListener('input', () => {
+        skipFramesValue.textContent = skipFramesSlider.value;
+      });
+      
+      playPauseBtn.addEventListener('click', togglePlayPause);
+      restartBtn.addEventListener('click', restartAnimation);
+      
+      function togglePlayPause() {
+        if (animationPlaying) {
+          pauseAnimation();
+          playPauseBtn.textContent = 'Play';
+        } else {
+          playAnimation();
+          playPauseBtn.textContent = 'Pause';
+        }
+      }
+      
+      function playAnimation() {
+        if (!animationPlaying && asciiFrames.length > 0) {
+          animationPlaying = true;
+          const fps = parseInt(fpsSlider.value);
+          const frameInterval = 1000 / fps;
+          
+          animationTimer = setInterval(() => {
+            currentFrameIndex = (currentFrameIndex + 1) % asciiFrames.length;
+            displayFrame(currentFrameIndex);
+          }, frameInterval);
+        }
+      }
+      
+      function pauseAnimation() {
+        if (animationTimer) {
+          clearInterval(animationTimer);
+          animationTimer = null;
+          animationPlaying = false;
+        }
+      }
+      
+      function restartAnimation() {
+        pauseAnimation();
+        currentFrameIndex = 0;
+        displayFrame(currentFrameIndex);
+        if (animationPlaying) {
+          playAnimation();
+        }
+      }
+      
+      function displayFrame(index) {
+        if (asciiFrames[index]) {
+          if (typeof asciiFrames[index] === 'string') {
+            asciiOutput.textContent = asciiFrames[index];
+          } else if (asciiFrames[index].html) {
+            asciiOutput.innerHTML = asciiFrames[index].html;
+          }
+        }
+      }
+      
+      // Create controls for toy mode settings
+      const toyControlsHtml = `
+        <div id="toyControls" class="bg-white dark:bg-gray-800 p-2 rounded-lg border mt-2 hidden">
+          <div class="mb-2">
+            <label class="block text-xs mb-1">Cursor Range: <span id="cursorRangeValue">40</span>px</label>
+            <input type="range" id="cursorRangeSlider" class="slider w-full h-2" min="10" max="100" value="40">
+          </div>
+          <div class="mb-2">
+            <label class="block text-xs mb-1">Repel Force: <span id="repelForceValue">0.8</span></label>
+            <input type="range" id="repelForceSlider" class="slider w-full h-2" min="0.1" max="2" step="0.1" value="0.8">
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Performance: <span id="performanceModeValue">Balanced</span></label>
+            <select id="performanceModeSelect" class="w-full py-1 px-2 text-xs rounded border">
+              <option value="quality">High Quality</option>
+              <option value="balanced" selected>Balanced</option>
+              <option value="performance">High Performance</option>
+            </select>
+          </div>
+        </div>
+      `;
+      
+      // "Toy with your creation" button - only visible in greyscale mode
+      // Add event listener after DOM is fully loaded
+      if (toyWithCreationBtn) {
+        toyWithCreationBtn.addEventListener('click', toggleToyMode);
+      } else {
+        console.error("Toy feature button not found in the DOM");
+      }
+      
+      // Check if toy feature should be shown (only in greyscale mode and with completed ASCII art)
+      function updateToyFeatureVisibility() {
+        // Get elements here inside the function to ensure they exist
+        const toyFeatureContainer = document.getElementById('toyFeatureContainer');
+        const toyWithCreationBtn = document.getElementById('toyWithCreationBtn');
+        
+        if (!toyFeatureContainer || !toyWithCreationBtn) {
+          console.error("Toy feature elements not found");
+          return;
+        }
+        
+        // Inject toy controls if not already added
+        if (!document.getElementById('toyControls')) {
+          toyFeatureContainer.insertAdjacentHTML('beforeend', toyControlsHtml);
+          
+          // Add event listeners to the new controls
+          const cursorRangeSlider = document.getElementById('cursorRangeSlider');
+          const cursorRangeValue = document.getElementById('cursorRangeValue');
+          const repelForceSlider = document.getElementById('repelForceSlider');
+          const repelForceValue = document.getElementById('repelForceValue');
+          const performanceModeSelect = document.getElementById('performanceModeSelect');
+          const performanceModeValue = document.getElementById('performanceModeValue');
+          
+          if (cursorRangeSlider) {
+            cursorRangeSlider.addEventListener('input', () => {
+              cursorRangeValue.textContent = cursorRangeSlider.value;
+              cursorRadius = parseInt(cursorRangeSlider.value);
+            });
+          }
+          
+          if (repelForceSlider) {
+            repelForceSlider.addEventListener('input', () => {
+              repelForceValue.textContent = repelForceSlider.value;
+              cursorForce = parseFloat(repelForceSlider.value);
+            });
+          }
+          
+          if (performanceModeSelect) {
+            performanceModeSelect.addEventListener('change', () => {
+              performanceModeValue.textContent = performanceModeSelect.options[performanceModeSelect.selectedIndex].text;
+              
+              // Change performance settings
+              switch(performanceModeSelect.value) {
+                case 'quality':
+                  toyAnimationThrottle = 0; // No throttling
+                  toyAnimationActive = true;
+                  break;
+                case 'balanced':
+                  toyAnimationThrottle = 1; // Small throttle
+                  toyAnimationActive = true;
+                  break;
+                case 'performance':
+                  toyAnimationThrottle = 2; // Heavy throttle
+                  toyAnimationActive = true;
+                  break;
+              }
+            });
+          }
+        }
+        
+        const settings = getCurrentSettings();
+        if (settings.colorMode === 'greyscale' && 
+            asciiOutput.textContent && 
+            !animationPlaying) {
+          toyFeatureContainer.classList.remove('hidden');
+        } else {
+          toyFeatureContainer.classList.add('hidden');
+          // Ensure toy mode is disabled if not visible
+          if (toyModeActive) {
+            toggleToyMode();
+          }
+        }
+      }
+      
+      // Interactive ASCII character animation for "toy with your creation" mode
+      function toggleToyMode() {
+        console.log("Toggle toy mode called, current state:", toyModeActive);
+        
+        if (toyModeActive) {
+          // Disable toy mode
+          toyModeActive = false;
+          toyWithCreationBtn.textContent = "toy with your creation";
+          
+          // Stop the animation loop
+          if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+          }
+          
+          // Restore original ASCII art
+          cleanupToyMode();
+        } else {
+          // Enable toy mode
+          toyModeActive = true;
+          toyWithCreationBtn.textContent = "stop toying";
+          
+          // Initialize the interactive ASCII character elements
+          const initialized = initializeToyMode();
+          
+          // Only start animation if initialization was successful
+          if (initialized) {
+            // Start the animation loop
+            animateCharacters();
+          } else {
+            // Reset toy mode if initialization failed
+            toyModeActive = false;
+            toyWithCreationBtn.textContent = "toy with your creation";
+          }
+        }
+      }
+      
+      function initializeToyMode() {
+        console.log("Initializing toy mode...");
+        
+        // Store the original content for later restoration
+        const originalHTML = asciiOutput.innerHTML;
+        const originalText = asciiOutput.textContent || asciiOutput.innerText;
+        
+        // Save to a data attribute so we can restore it exactly as-is
+        asciiOutput.setAttribute('data-original-html', originalHTML);
+        asciiOutput.setAttribute('data-original-text', originalText);
+        
+        if (!originalText || originalText.trim() === '') {
+          console.error("No ASCII content to animate");
+          return false;
+        }
+        
+        // Parse the ASCII content into lines
+        const lines = originalText.split('\n');
+        console.log(`Found ${lines.length} lines of ASCII content`);
+        
+        // Get styling information
+        const styles = window.getComputedStyle(asciiOutput);
+        const fontSize = parseInt(styles.fontSize) || 10;
+        const lineHeight = parseFloat(styles.lineHeight) / fontSize || 1.0;
+        const letterSpacing = parseFloat(styles.letterSpacing) / fontSize || 0;
+        
+        console.log(`Font size: ${fontSize}, Line height: ${lineHeight}, Letter spacing: ${letterSpacing}`);
+        
+        // Save current dimensions
+        const containerWidth = asciiOutput.offsetWidth;
+        const containerHeight = asciiOutput.offsetHeight;
+        
+        // Clear previous interactive elements if any
+        asciiCharacters = [];
+        originalPositions = [];
+        
+        // Create interactive container with same dimensions as original
+        const interactiveContainer = document.createElement('div');
+        interactiveContainer.id = 'interactiveAsciiContainer';
+        interactiveContainer.style.position = 'relative';
+        interactiveContainer.style.width = containerWidth + 'px';
+        interactiveContainer.style.height = containerHeight + 'px';
+        interactiveContainer.style.fontFamily = 'monospace';
+        interactiveContainer.style.fontSize = `${fontSize}px`;
+        interactiveContainer.style.lineHeight = lineHeight;
+        interactiveContainer.style.letterSpacing = `${letterSpacing}em`;
+        interactiveContainer.style.whiteSpace = 'pre';
+        interactiveContainer.style.display = 'block';
+        
+        // Clear and append the container
+        asciiOutput.innerHTML = '';
+        asciiOutput.appendChild(interactiveContainer);
+        
+        // Add mouse/touch event listeners for interaction
+        interactiveContainer.addEventListener('mousemove', handleMouseMove);
+        interactiveContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+        
+        // Calculate character dimensions
+        const charWidth = fontSize * 0.6 * (1 + letterSpacing);
+        const charHeight = fontSize * lineHeight;
+        
+        // Track how many characters we've processed
+        let charCount = 0;
+        
+        // Process each character in each line
+        for (let y = 0; y < lines.length; y++) {
+          const line = lines[y] || '';
+          
+          for (let x = 0; x < line.length; x++) {
+            const char = line[x];
+            
+            // Skip empty spaces (optimizes performance)
+            if (char === ' ' || !char) continue;
+            
+            // Create character element
+            const charElem = document.createElement('div');
+            charElem.textContent = char;
+            charElem.style.position = 'absolute';
+            charElem.style.left = `${x * charWidth}px`;
+            charElem.style.top = `${y * charHeight}px`;
+            
+            // Add to container
+            interactiveContainer.appendChild(charElem);
+            charCount++;
+            
+            // Store original position
+            const originalPos = { x: x * charWidth, y: y * charHeight, char };
+            originalPositions.push(originalPos);
+            
+            // Store character with physics properties
+            asciiCharacters.push({
+              elem: charElem,
+              originalX: x * charWidth,
+              originalY: y * charHeight,
+              x: x * charWidth,
+              y: y * charHeight,
+              vx: 0,
+              vy: 0,
+              char
+            });
+          }
+        }
+        
+        console.log(`Initialized ${charCount} interactive characters`);
+        
+        // If no characters were created, restore original content and return false
+        if (charCount === 0) {
+          console.error("Failed to create interactive characters");
+          cleanupToyMode();
+          return false;
+        }
+        
+        return true;
+      }
+      
+      function handleMouseMove(e) {
+        if (!toyModeActive) return;
+        
+        const container = document.getElementById('interactiveAsciiContainer');
+        if (!container) return;
+        
+        const rect = container.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Update mouse position for animation loop
+        cursorPos = { x: mouseX, y: mouseY };
+      }
+      
+      function handleTouchMove(e) {
+        if (!toyModeActive) return;
+        e.preventDefault();
+        
+        const container = document.getElementById('interactiveAsciiContainer');
+        if (!container || !e.touches[0]) return;
+        
+        const rect = container.getBoundingClientRect();
+        const touchX = e.touches[0].clientX - rect.left;
+        const touchY = e.touches[0].clientY - rect.top;
+        
+        // Update touch position for animation loop
+        cursorPos = { x: touchX, y: touchY };
+      }
+      
+      // Animation variables
+      let cursorPos = { x: -100, y: -100 }; // Start off-screen
+      
+      // Additional toy mode variables
+      let cursorRadius = 40;
+      let cursorForce = 0.8;
+      let toyAnimationThrottle = 1; // 0 = none, 1 = light, 2 = heavy
+      let toyAnimationActive = true;
+      let toyFrameCount = 0;
+      
+      function animateCharacters() {
+        if (!toyModeActive) return;
+        
+        // Performance mode - skip frames based on throttle setting
+        toyFrameCount++;
+        if (toyAnimationThrottle > 0 && toyFrameCount % (toyAnimationThrottle + 1) !== 0) {
+          animationFrameId = requestAnimationFrame(animateCharacters);
+          return;
+        }
+        
+        // Get toy controls if they exist
+        const toyControls = document.getElementById('toyControls');
+        if (toyControls && toyControls.classList.contains('hidden')) {
+          toyControls.classList.remove('hidden');
+        }
+        
+        // Animation constants
+        const returnForce = 0.1;
+        const friction = 0.9;
+        
+        // Calculate cursor radius squared for faster distance checks
+        const cursorRadiusSq = cursorRadius * cursorRadius;
+        
+        // Track characters that need updates to minimize DOM operations
+        const activeChars = [];
+        
+        // First pass: Calculate physics for all characters
+        for (let i = 0; i < asciiCharacters.length; i++) {
+          const char = asciiCharacters[i];
+          
+          // Quick distance check to avoid expensive calculations for far-away characters
+          const dx = char.x - cursorPos.x;
+          const dy = char.y - cursorPos.y;
+          const distSq = dx * dx + dy * dy;
+          
+          let isActive = false;
+          
+          // Apply cursor repelling force (inverse square law)
+          if (distSq < cursorRadiusSq) {
+            const dist = Math.sqrt(distSq);
+            
+            // Normalize direction vector
+            const nx = dx / dist;
+            const ny = dy / dist;
+            
+            // Calculate repelling force (stronger when closer)
+            const force = cursorForce * (1 - dist / cursorRadius);
+            
+            // Apply force as acceleration
+            char.vx += nx * force;
+            char.vy += ny * force;
+            isActive = true;
+          }
+          
+          // Apply return force to original position
+          const ox = char.originalX - char.x;
+          const oy = char.originalY - char.y;
+          
+          // Only apply return force if character is not at its original position
+          if (Math.abs(ox) > 0.1 || Math.abs(oy) > 0.1) {
+            char.vx += ox * returnForce;
+            char.vy += oy * returnForce;
+            isActive = true;
+          }
+          
+          // Apply friction to velocity
+          if (Math.abs(char.vx) > 0.01 || Math.abs(char.vy) > 0.01) {
+            char.vx *= friction;
+            char.vy *= friction;
+            isActive = true;
+          }
+          
+          // Update position if there's meaningful movement
+          if (Math.abs(char.vx) > 0.01 || Math.abs(char.vy) > 0.01) {
+            char.x += char.vx;
+            char.y += char.vy;
+            isActive = true;
+          }
+          
+          // Add to active list only if it needs visual updates
+          if (isActive) {
+            activeChars.push(char);
+          }
+        }
+        
+        // Second pass: Batch DOM updates for better performance
+        activeChars.forEach(char => {
+          // Update visual position with hardware acceleration
+          char.elem.style.transform = `translate3d(${char.x - char.originalX}px, ${char.y - char.originalY}px, 0)`;
+          
+          // Add a gentle hue shift based on distance from original position
+          const dx = char.x - char.originalX;
+          const dy = char.y - char.originalY;
+          const displacement = Math.sqrt(dx * dx + dy * dy);
+          
+          // Change color based on displacement (only if significant)
+          if (displacement > 1) {
+            const hue = (displacement * 5) % 360;
+            char.elem.style.color = `hsl(${hue}, 80%, 50%)`;
+          } else if (char.elem.style.color) {
+            char.elem.style.color = '';
+          }
+        });
+        
+        // Continue animation loop if active
+        if (toyAnimationActive) {
+          animationFrameId = requestAnimationFrame(animateCharacters);
+        }
+      }
+      
+      function cleanupToyMode() {
+        console.log("Cleaning up toy mode...");
+        
+        // Restore original content directly from the stored HTML/text
+        const originalHTML = asciiOutput.getAttribute('data-original-html');
+        const originalText = asciiOutput.getAttribute('data-original-text');
+        
+        console.log("Original HTML exists:", !!originalHTML);
+        console.log("Original text exists:", !!originalText);
+        
+        if (originalHTML) {
+          // If we have the original HTML, restore it exactly as it was
+          asciiOutput.innerHTML = originalHTML;
+          console.log("Restored original HTML content");
+        } else if (originalText) {
+          // If we only have the text, restore that
+          asciiOutput.innerHTML = '';
+          asciiOutput.textContent = originalText;
+          console.log("Restored original text content");
+        } else {
+          console.error("No original content found to restore!");
+          
+          // Try to reconstruct from character elements as a fallback
+          let reconstructedContent = '';
+          
+          // Get the maximum row and col
+          let maxRow = 0;
+          const charsByRow = new Map();
+          
+          // Group characters by row
+          asciiCharacters.forEach(char => {
+            const fontSize = parseInt(window.getComputedStyle(asciiOutput).fontSize) || 10;
+            const lineHeight = parseFloat(window.getComputedStyle(asciiOutput).lineHeight) / fontSize || 1.0;
+            const charHeight = fontSize * lineHeight;
+            
+            const row = Math.floor(char.originalY / charHeight);
+            maxRow = Math.max(maxRow, row);
+            
+            if (!charsByRow.has(row)) {
+              charsByRow.set(row, []);
+            }
+            
+            charsByRow.get(row).push({
+              col: Math.floor(char.originalX / (fontSize * 0.6)),
+              char: char.char
+            });
+          });
+          
+          // Sort each row by column and build the lines
+          for (let row = 0; row <= maxRow; row++) {
+            const chars = charsByRow.get(row) || [];
+            chars.sort((a, b) => a.col - b.col);
+            
+            let line = '';
+            let lastCol = -1;
+            
+            chars.forEach(c => {
+              // Fill gaps with spaces
+              while (lastCol < c.col - 1) {
+                line += ' ';
+                lastCol++;
+              }
+              line += c.char;
+              lastCol = c.col;
+            });
+            
+            reconstructedContent += line + '\n';
+          }
+          
+          // Apply the reconstructed content
+          if (reconstructedContent) {
+            asciiOutput.innerHTML = '';
+            asciiOutput.textContent = reconstructedContent;
+            console.log("Used reconstructed ASCII content as fallback");
+          }
+        }
+        
+        // Reset state
+        asciiCharacters = [];
+        originalPositions = [];
+        cursorPos = { x: -100, y: -100 };
+      }
+      
+      // Show frame gallery
+      function showFrameGallery() {
+        // Clear existing frames
+        framesContainer.innerHTML = '';
+        
+        // Add each frame to the gallery
+        asciiFrames.forEach((frame, index) => {
+          const frameDiv = document.createElement('div');
+          frameDiv.className = 'frame-item';
+          
+          // Create frame preview container
+          const previewDiv = document.createElement('div');
+          previewDiv.className = 'frame-preview ascii-pre p-2';
+          
+          // Add frame content
+          if (typeof frame === 'string') {
+            previewDiv.textContent = frame;
+          } else if (frame.html) {
+            previewDiv.innerHTML = frame.html;
+          }
+          
+          // Add frame info and controls
+          const infoDiv = document.createElement('div');
+          infoDiv.className = 'flex justify-between items-center';
+          infoDiv.innerHTML = `
+            <span class="text-sm font-medium">Frame ${index + 1}</span>
+            <button class="save-frame-btn primary-btn text-sm px-2 py-1 rounded" data-index="${index}">Save Frame</button>
+          `;
+          
+          frameDiv.appendChild(previewDiv);
+          frameDiv.appendChild(infoDiv);
+          framesContainer.appendChild(frameDiv);
+          
+          // If we have a saved frame image, store it
+          if (framePreviews[index]) {
+            const saveBtn = frameDiv.querySelector('.save-frame-btn');
+            saveBtn.addEventListener('click', () => {
+              saveFrame(index);
+            });
+          }
+        });
+        
+        // Show the gallery
+        frameGallery.classList.remove('hidden');
+      }
+      
+      // Save an individual frame
+      function saveFrame(index) {
+        if (!framePreviews[index]) {
+          // Generate the frame image if it doesn't exist
+          createFrameImage(index).then(() => {
+            displayFramePreview(index);
+          });
+        } else {
+          displayFramePreview(index);
+        }
+      }
+      
+      // Create an image for a frame
+      async function createFrameImage(index) {
+        const frame = asciiFrames[index];
+        const settings = getCurrentSettings();
+        
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set dimensions based on content
+        const fontSize = parseInt(settings.fontSize);
+        const lineHeight = parseFloat(settings.lineHeight);
+        const letterSpacing = parseFloat(settings.letterSpacing);
+        const bgColor = settings.bgColor;
+        
+        if (typeof frame === 'string') {
+          // For text frames
+          const lines = frame.split('\n');
+          const maxLineLength = Math.max(...lines.map(line => line.length));
+          
+          const charWidth = fontSize * 0.6 * (1 + parseFloat(letterSpacing));
+          const charHeight = fontSize * lineHeight;
+          
+          canvas.width = Math.ceil(maxLineLength * charWidth) + 40;
+          canvas.height = Math.ceil(lines.length * charHeight) + 40;
+          
+          // Fill background
+          ctx.fillStyle = bgColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Draw text
+          ctx.font = `${fontSize}px monospace`;
+          ctx.fillStyle = '#000000';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+          
+          for (let i = 0; i < lines.length; i++) {
+            const y = 20 + i * charHeight;
+            
+            for (let j = 0; j < lines[i].length; j++) {
+              ctx.fillText(
+                lines[i][j],
+                20 + j * charWidth,
+                y
+              );
+            }
+          }
+        } else if (frame.html) {
+          // For HTML frames (colored ASCII)
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = frame.html;
+          tempDiv.style.fontFamily = 'monospace';
+          tempDiv.style.fontSize = `${fontSize}px`;
+          tempDiv.style.lineHeight = lineHeight;
+          tempDiv.style.letterSpacing = `${letterSpacing}em`;
+          tempDiv.style.backgroundColor = bgColor;
+          tempDiv.style.padding = '20px';
+          tempDiv.style.whiteSpace = 'pre';
+          tempDiv.style.display = 'inline-block';
+          
+          // Add to document temporarily to measure
+          document.body.appendChild(tempDiv);
+          const width = tempDiv.offsetWidth;
+          const height = tempDiv.offsetHeight;
+          
+          canvas.width = width + 20;
+          canvas.height = height + 20;
+          
+          // Fill background
+          ctx.fillStyle = bgColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Draw the content
+          const rows = Array.from(tempDiv.querySelectorAll('br')).reduce((acc, br) => {
+            const rowDiv = document.createElement('div');
+            let node = br.previousSibling;
+            const nodes = [];
+            
+            while (node && node.previousSibling) {
+              nodes.unshift(node);
+              node = node.previousSibling;
+            }
+            
+            if (nodes.length > 0) {
+              nodes.forEach(n => rowDiv.appendChild(n.cloneNode(true)));
+              acc.push(rowDiv);
+            }
+            
+            return acc;
+          }, []);
+          
+          let curY = 10;
+          rows.forEach(row => {
+            let curX = 10;
+            // Process each span
+            Array.from(row.childNodes).forEach(node => {
+              if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'SPAN') {
+                const color = node.style.color || '#000';
+                ctx.fillStyle = color;
+                ctx.font = `${fontSize}px monospace`;
+                ctx.textBaseline = 'top';
+                
+                for (let i = 0; i < node.textContent.length; i++) {
+                  ctx.fillText(node.textContent[i], curX, curY);
+                  curX += fontSize * 0.6 * (1 + parseFloat(letterSpacing));
+                }
+              }
+            });
+            
+            // Move to next row
+            curY += fontSize * lineHeight;
+          });
+          
+          document.body.removeChild(tempDiv);
+        }
+        
+        // Store the data URL
+        framePreviews[index] = canvas.toDataURL('image/png');
+      }
+      
+      // Display a frame for downloading
+      function displayFramePreview(index) {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
+        modal.innerHTML = `
+          <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-2xl w-full">
+            <h3 class="text-xl font-bold mb-4">Frame ${index + 1}</h3>
+            <div class="mb-4">
+              <img src="${framePreviews[index]}" alt="Frame ${index + 1}" class="max-w-full border rounded">
+            </div>
+            <p class="mb-4 text-sm">Right-click on the image and select "Save image as..." to download it.</p>
+            <div class="flex justify-end">
+              <button class="close-modal-btn border rounded-lg px-4 py-2">Close</button>
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        modal.querySelector('.close-modal-btn').addEventListener('click', () => {
+          document.body.removeChild(modal);
+        });
+      }
+      
+      // Value display updates for sliders
+      resolutionSlider.addEventListener('input', () => {
+        resolutionValue.textContent = resolutionSlider.value;
+      });
+      
+      fontSizeSlider.addEventListener('input', () => {
+        fontSizeValue.textContent = fontSizeSlider.value;
+      });
+      
+      lineHeightSlider.addEventListener('input', () => {
+        lineHeightValue.textContent = lineHeightSlider.value;
+      });
+      
+      letterSpacingSlider.addEventListener('input', () => {
+        letterSpacingValue.textContent = letterSpacingSlider.value;
+      });
+      
+      contrastSlider.addEventListener('input', () => {
+        contrastValue.textContent = contrastSlider.value;
+      });
+      
+      brightnessSlider.addEventListener('input', () => {
+        brightnessValue.textContent = brightnessSlider.value;
+      });
+      
+      saturationSlider.addEventListener('input', () => {
+        saturationValue.textContent = saturationSlider.value;
+      });
+      
+      gammaSlider.addEventListener('input', () => {
+        gammaValue.textContent = gammaSlider.value;
+      });
+      
+      charRandomizerSlider.addEventListener('input', () => {
+        charRandomizerValue.textContent = charRandomizerSlider.value;
+      });
+      
+      // Brightness Threshold Masking event listeners
+      brightnessThresholdMinSlider.addEventListener('input', () => {
+        brightnessThresholdMinValue.textContent = brightnessThresholdMinSlider.value;
+        // Ensure min doesn't exceed max
+        if (parseInt(brightnessThresholdMinSlider.value) > parseInt(brightnessThresholdMaxSlider.value)) {
+          brightnessThresholdMaxSlider.value = brightnessThresholdMinSlider.value;
+          brightnessThresholdMaxValue.textContent = brightnessThresholdMaxSlider.value;
+        }
+      });
+      
+      brightnessThresholdMaxSlider.addEventListener('input', () => {
+        brightnessThresholdMaxValue.textContent = brightnessThresholdMaxSlider.value;
+        // Ensure max doesn't go below min
+        if (parseInt(brightnessThresholdMaxSlider.value) < parseInt(brightnessThresholdMinSlider.value)) {
+          brightnessThresholdMinSlider.value = brightnessThresholdMaxSlider.value;
+          brightnessThresholdMinValue.textContent = brightnessThresholdMinSlider.value;
+        }
+      });
+      
+      // Show/hide custom character input when mode changes
+      thresholdMaskModeSelect.addEventListener('change', () => {
+        if (thresholdMaskModeSelect.value === 'custom') {
+          thresholdMaskCustomChar.classList.remove('hidden');
+        } else {
+          thresholdMaskCustomChar.classList.add('hidden');
+        }
+      });
+      
+      // Preset Management
+      savePresetBtn.addEventListener('click', () => {
+        savePresetModal.classList.remove('hidden');
+        presetName.focus();
+      });
+      
+      cancelSavePresetBtn.addEventListener('click', () => {
+        savePresetModal.classList.add('hidden');
+      });
+      
+      confirmSavePresetBtn.addEventListener('click', () => {
+        const name = presetName.value.trim();
+        if (!name) {
+          alert('Please enter a preset name');
+          return;
+        }
+        
+        savedPresets[name] = getCurrentSettings();
+        updatePresetDropdown();
+        savePresetModal.classList.add('hidden');
+        presetName.value = '';
+      });
+      
+      presetSelect.addEventListener('change', () => {
+        const selected = presetSelect.value;
+        if (selected && savedPresets[selected]) {
+          loadPreset(savedPresets[selected]);
+          presetSelect.value = ''; // Reset dropdown
+        }
+      });
+      
+      exportPresetBtn.addEventListener('click', () => {
+        const presetData = JSON.stringify(savedPresets, null, 2);
+        
+        // Create temporary element
+        const el = document.createElement('textarea');
+        el.value = presetData;
+        el.setAttribute('readonly', '');
+        el.style.position = 'absolute';
+        el.style.left = '-9999px';
+        document.body.appendChild(el);
+        el.select();
+        
+        // Copy to clipboard
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        
+        alert('Preset data copied to clipboard!');
+      });
+      
+      importPresetBtn.addEventListener('click', () => {
+        importPresetModal.classList.remove('hidden');
+        presetJSON.focus();
+      });
+      
+      cancelImportPresetBtn.addEventListener('click', () => {
+        importPresetModal.classList.add('hidden');
+      });
+      
+      confirmImportPresetBtn.addEventListener('click', () => {
+        try {
+          const importedPresets = JSON.parse(presetJSON.value);
+          
+          // Validate data structure
+          if (typeof importedPresets !== 'object') {
+            throw new Error('Invalid preset format');
+          }
+          
+          // Merge with existing presets
+          savedPresets = { ...savedPresets, ...importedPresets };
+          updatePresetDropdown();
+          importPresetModal.classList.add('hidden');
+          presetJSON.value = '';
+          
+          alert('Presets imported successfully!');
+        } catch (e) {
+          alert('Error importing presets: ' + e.message);
+        }
+      });
+      
+      // Generate ASCII Art
+      generateBtn.addEventListener('click', () => {
+        if (mediaType === 'image') {
+          generateAsciiArt();
+        } else if (mediaType === 'video') {
+          generateAsciiAnimation();
+        }
+      });
+      
+      // Result Controls
+      saveImageBtn.addEventListener('click', saveAsImage);
+      copyTextBtn.addEventListener('click', copyAsciiText);
+      newImageBtn.addEventListener('click', resetToNewImage);
+      resetErrorBtn.addEventListener('click', resetError);
+      
+      // Variables for interactive ASCII animation
+      let toyModeActive = false;
+      let asciiCharacters = [];
+      let originalPositions = [];
+      let animationFrameId = null;
+      
+      // Helper Functions
+      function handleFile(file) {
+        if (mediaType === 'image' && !file.type.match('image.*')) {
+          showError('Please select an image file.');
+          return;
+        } else if (mediaType === 'video' && !file.type.match('video.*') && !file.name.toLowerCase().endsWith('.gif')) {
+          showError('Please select a video or GIF file.');
+          return;
+        }
+        
+        // Immediately force hiding all media elements before processing the new file
+        imagePreview.classList.add('hidden');
+        videoPreview.classList.add('hidden');
+        videoWarning.classList.add('hidden');
+        
+        // Clean up media resources first
+        if (currentVideo) {
+          try {
+            currentVideo.pause();
+            currentVideo.removeAttribute('src');
+            currentVideo.load();
+          } catch (e) {
+            console.log('Error cleaning up video:', e);
+          }
+          currentVideo = null;
+        }
+        
+        if (currentImage) {
+          imagePreview.removeAttribute('src');
+          currentImage = null;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          hideError();
+          
+          // In mobile mode, always force video elements to stay hidden
+          if (inMobileMode && mediaType === 'video') {
+            showError('Video processing is not available in mobile mode.');
+            return;
+          }
+          
+          if (mediaType === 'image') {
+            // Set up image - keep video elements hidden
+            videoPreview.classList.add('hidden');
+            videoWarning.classList.add('hidden');
+            
+            currentImage = new Image();
+            currentImage.onload = () => {
+              imagePreview.src = e.target.result;
+              imagePreview.classList.remove('hidden');
+              previewSection.classList.remove('hidden');
+              controlsSection.classList.remove('hidden');
+            };
+            currentImage.onerror = () => {
+              showError('Failed to load image. Please try another file.');
+            };
+            currentImage.src = e.target.result;
+          } else {
+            // Set up video - keep image elements hidden
+            imagePreview.classList.add('hidden');
+            
+            // Double-check we're not in mobile mode
+            if (!inMobileMode) {
+              videoPreview.src = e.target.result;
+              videoPreview.classList.remove('hidden');
+              videoWarning.classList.remove('hidden');
+              previewSection.classList.remove('hidden');
+              controlsSection.classList.remove('hidden');
+              
+              // Store video for later processing
+              currentVideo = videoPreview;
+            }
+          }
+        };
+        
+        reader.onerror = () => {
+          showError('Error reading file. Please try again.');
+        };
+        
+        reader.readAsDataURL(file);
+      }
+      
+      async function generateAsciiAnimation() {
+        if (!currentVideo) {
+          showError('Please select a video or GIF first.');
+          return;
+        }
+        
+        // Reset animation state
+        asciiFrames = [];
+        framePreviews = [];
+        currentFrameIndex = 0;
+        pauseAnimation();
+        
+        // Reset frame gallery
+        frameGallery.classList.add('hidden');
+        framesContainer.innerHTML = '';
+        
+        // Show loading state
+        loadingSection.classList.remove('hidden');
+        resultSection.classList.add('hidden');
+        
+        try {
+          // Make sure video is ready and metadata is loaded
+          if (currentVideo.readyState < 2) {
+            await new Promise(resolve => {
+              currentVideo.addEventListener('loadeddata', resolve, { once: true });
+            });
+          }
+          
+          // Get settings
+          const settings = getCurrentSettings();
+          const resolution = parseInt(settings.animResolution || 50) / 100;
+          const skipFrames = parseInt(settings.skipFrames || 1);
+          
+          // Ensure we have valid duration
+          await new Promise(resolve => {
+            if (currentVideo.duration === Infinity || isNaN(currentVideo.duration)) {
+              // For GIFs or videos without proper duration
+              currentVideo.addEventListener('timeupdate', function getDuration() {
+                if (currentVideo.currentTime > 0) {
+                  currentVideo.removeEventListener('timeupdate', getDuration);
+                  resolve();
+                }
+              });
+              currentVideo.currentTime = 9999999; // Seek to end to determine duration
+            } else {
+              resolve();
+            }
+          });
+          
+          // Get total duration and calculate frames
+          const totalDuration = currentVideo.duration;
+          const fps = Math.min(15, currentVideo.videoWidth > 640 ? 10 : 15); // Lower fps for better performance
+          const totalFrames = Math.min(300, Math.floor(totalDuration * fps)); // Limit total frames
+          
+          // Create temporary canvas for frame extraction
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Set canvas size (reduced for performance)
+          const width = Math.floor(currentVideo.videoWidth * resolution);
+          const height = Math.floor(currentVideo.videoHeight * resolution);
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Set video to beginning
+          currentVideo.currentTime = 0;
+          
+          // Calculate frame interval to cover full video duration
+          const frameInterval = totalDuration / totalFrames;
+          
+          // Process frames
+          for (let i = 0; i < totalFrames; i += skipFrames) {
+            // Update progress
+            loadingProgress.textContent = `Processing frame ${i + 1}/${totalFrames} (${Math.round((i + 1) / totalFrames * 100)}%)`;
+            
+            // Calculate target time for even distribution across the video
+            const targetTime = i * frameInterval;
+            if (targetTime >= totalDuration) break;
+            
+            // Wait for seeked event
+            await new Promise(resolve => {
+              const onSeeked = () => {
+                currentVideo.removeEventListener('seeked', onSeeked);
+                resolve();
+              };
+              currentVideo.addEventListener('seeked', onSeeked);
+              currentVideo.currentTime = targetTime;
+            });
+            
+            // Draw current video frame to canvas
+            ctx.drawImage(currentVideo, 0, 0, width, height);
+            
+            // Create a temporary image from the canvas frame
+            const frameImage = new Image();
+            frameImage.src = canvas.toDataURL();
+            
+            // Wait for image to load
+            await new Promise(resolve => {
+              frameImage.onload = resolve;
+            });
+            
+            // Convert frame to ASCII
+            const result = convertToAscii(frameImage, getCharacterSet(settings), resolution, settings);
+            
+            // Store frame
+            if (settings.colorMode === 'greyscale') {
+              asciiFrames.push(result.asciiText);
+            } else {
+              // For color modes, store a reference to the HTML
+              asciiFrames.push({
+                html: result.colorHTML || asciiOutput.innerHTML,
+                text: result.asciiText
+              });
+            }
+            
+            // Generate and store frame preview (for later saving)
+            createFrameImage(asciiFrames.length - 1);
+            
+            // Give browser time to process and prevent UI freezing
+            await new Promise(resolve => setTimeout(resolve, 0));
+          }
+          
+          // Display first frame
+          displayFrame(0);
+          
+          // Show animation controls
+          animationControls.classList.remove('hidden');
+          
+          // Hide loading and show result
+          loadingSection.classList.add('hidden');
+          resultSection.classList.remove('hidden');
+          
+          // Start playing animation
+          animationPlaying = false;
+          playAnimation();
+          
+        } catch (error) {
+          console.error('Error generating ASCII animation:', error);
+          loadingSection.classList.add('hidden');
+          showError('Error generating ASCII animation. Please try again with a different video or settings.');
+        }
+      }
+      
+      function getCharacterSet(settings) {
+        let chars;
+        if (settings.style === 'custom') {
+          chars = settings.customChars || '@#$%&?!;:+=-_';
+        } else {
+          chars = characterSets[settings.style] || characterSets.default;
+        }
+        
+        if (settings.invert) {
+          chars = chars.split('').reverse().join('');
+        }
+        
+        return chars;
+      }
+      
+      function getCurrentSettings() {
+        // Get settings from either simple or advanced mode
+        const isSimpleMode = !simpleModelToggle.checked || inMobileMode;
+        
+        if (isSimpleMode) {
+          return {
+            brightness: brightnessSliderSimple.value,
+            contrast: contrastSliderSimple.value,
+            letterSpacing: letterSpacingSliderSimple.value,
+            lineHeight: lineHeightSliderSimple.value,
+            // Default values for everything else
+            style: 'default',
+            resolution: 100,
+            invert: false,
+            fontSize: 10,
+            bgColor: '#ffffff',
+            saturation: 1.0,
+            gamma: 1.0,
+            colorMode: 'greyscale',
+            dithering: 'none',
+            pixelate: false,
+            edgeDetect: false,
+            // Character randomizer (default to 0 in simple mode)
+            charRandomizer: 0,
+            // Brightness threshold masking (default disabled in simple mode)
+            brightnessThresholdMin: 0,
+            brightnessThresholdMax: 100,
+            thresholdMaskMode: 'transparent',
+            thresholdMaskCustomChar: ' ',
+            // Animation settings
+            fps: fpsSlider.value,
+            animResolution: animResolutionSlider.value,
+            skipFrames: skipFramesSlider.value,
+            // Text overlay settings
+            textOverlayMode: textOverlayMode.value,
+            textFont: textFont.value,
+            textInput: textInput.value,
+            textSize: textSizeSlider.value,
+            textColor: textColorPicker.value,
+            textPosition: textPosition.value
+          };
+        } else {
+          return {
+            style: styleSelect.value,
+            customChars: customChars.value,
+            resolution: resolutionSlider.value,
+            invert: invertCheckbox.checked,
+            fontSize: fontSizeSlider.value,
+            lineHeight: lineHeightSlider.value,
+            letterSpacing: letterSpacingSlider.value,
+            bgColor: bgColorPicker.value,
+            contrast: contrastSlider.value,
+            brightness: brightnessSlider.value,
+            saturation: saturationSlider.value,
+            gamma: gammaSlider.value,
+            colorMode: colorModeSelect.value,
+            dithering: ditheringSelect.value,
+            pixelate: pixelateCheckbox.checked,
+            edgeDetect: edgeDetectCheckbox.checked,
+            charRandomizer: charRandomizerSlider.value,
+            brightnessThresholdMin: brightnessThresholdMinSlider.value,
+            brightnessThresholdMax: brightnessThresholdMaxSlider.value,
+            thresholdMaskMode: thresholdMaskModeSelect.value,
+            thresholdMaskCustomChar: thresholdMaskCustomChar.value,
+            palette: paletteSelect.value,
+            userPalette: userPalette,
+            // Animation settings
+            fps: fpsSlider.value,
+            animResolution: animResolutionSlider.value,
+            skipFrames: skipFramesSlider.value,
+            // Text overlay settings
+            textOverlayMode: textOverlayMode.value,
+            textFont: textFont.value,
+            textInput: textInput.value,
+            textSize: textSizeSlider.value,
+            textColor: textColorPicker.value,
+            textPosition: textPosition.value
+          };
+        }
+      }
+      
+      function loadPreset(settings) {
+        // Advanced mode controls
+        styleSelect.value = settings.style || 'default';
+        customChars.value = settings.customChars || '@#$%&?!;:+=-_';
+        resolutionSlider.value = settings.resolution || 100;
+        resolutionValue.textContent = settings.resolution || 100;
+        invertCheckbox.checked = settings.invert || false;
+        fontSizeSlider.value = settings.fontSize || 10;
+        fontSizeValue.textContent = settings.fontSize || 10;
+        lineHeightSlider.value = settings.lineHeight || 1.0;
+        lineHeightValue.textContent = settings.lineHeight || 1.0;
+        letterSpacingSlider.value = settings.letterSpacing || 0.5;
+        letterSpacingValue.textContent = settings.letterSpacing || 0.5;
+        bgColorPicker.value = settings.bgColor || '#ffffff';
+        contrastSlider.value = settings.contrast || 1.0;
+        contrastValue.textContent = settings.contrast || 1.0;
+        brightnessSlider.value = settings.brightness || 1.0;
+        brightnessValue.textContent = settings.brightness || 1.0;
+        saturationSlider.value = settings.saturation || 1.0;
+        saturationValue.textContent = settings.saturation || 1.0;
+        gammaSlider.value = settings.gamma || 1.0;
+        gammaValue.textContent = settings.gamma || 1.0;
+        colorModeSelect.value = settings.colorMode || 'greyscale';
+        ditheringSelect.value = settings.dithering || 'none';
+        pixelateCheckbox.checked = settings.pixelate || false;
+        edgeDetectCheckbox.checked = settings.edgeDetect || false;
+        paletteSelect.value = settings.palette || 'monochrome';
+        
+        // Simple mode controls
+        brightnessSliderSimple.value = settings.brightness || 1.0;
+        brightnessValueSimple.textContent = settings.brightness || 1.0;
+        contrastSliderSimple.value = settings.contrast || 1.0;
+        contrastValueSimple.textContent = settings.contrast || 1.0;
+        letterSpacingSliderSimple.value = settings.letterSpacing || 0.5;
+        letterSpacingValueSimple.textContent = settings.letterSpacing || 0.5;
+        lineHeightSliderSimple.value = settings.lineHeight || 1.0;
+        lineHeightValueSimple.textContent = settings.lineHeight || 1.0;
+        
+        // Custom chars visibility
+        if (settings.style === 'custom') {
+          customCharsContainer.classList.remove('hidden');
+        } else {
+          customCharsContainer.classList.add('hidden');
+        }
+        
+        // Color mode dependent settings
+        if (settings.colorMode === 'palette') {
+          colorPaletteSelect.classList.remove('hidden');
+          
+          if (settings.palette === 'custom') {
+            customPaletteContainer.classList.remove('hidden');
+            userPalette = settings.userPalette || [];
+            renderCustomPalette();
+          } else {
+            customPaletteContainer.classList.add('hidden');
+          }
+        } else {
+          colorPaletteSelect.classList.add('hidden');
+          customPaletteContainer.classList.add('hidden');
+        }
+        
+        // Trigger color mode change to update UI
+        colorModeSelect.dispatchEvent(new Event('change'));
+      }
+      
+      function updatePresetDropdown() {
+        // Clear existing options
+        while (presetSelect.options.length > 1) {
+          presetSelect.remove(1);
+        }
+        
+        // Add preset options
+        Object.keys(savedPresets).sort().forEach(name => {
+          const option = document.createElement('option');
+          option.value = name;
+          option.textContent = name;
+          presetSelect.appendChild(option);
+        });
+      }
+      
+      function renderCustomPalette() {
+        customPalette.innerHTML = '';
+        
+        if (userPalette.length === 0) {
+          const message = document.createElement('p');
+          message.className = 'text-sm text-gray-500';
+          message.textContent = 'Add colors to create your custom palette';
+          customPalette.appendChild(message);
+          return;
+        }
+        
+        // Create a canvas for displaying the palette (more efficient than many DOM elements)
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const swatchSize = 24;
+        const gap = 4;
+        const maxPerRow = Math.floor((customPalette.clientWidth || 300) / (swatchSize + gap));
+        const rows = Math.ceil(userPalette.length / maxPerRow);
+        
+        canvas.width = Math.min(userPalette.length, maxPerRow) * (swatchSize + gap) - gap;
+        canvas.height = rows * (swatchSize + gap) - gap;
+        
+        // Draw color swatches
+        userPalette.forEach((color, index) => {
+          const row = Math.floor(index / maxPerRow);
+          const col = index % maxPerRow;
+          const x = col * (swatchSize + gap);
+          const y = row * (swatchSize + gap);
+          
+          ctx.fillStyle = color;
+          ctx.fillRect(x, y, swatchSize, swatchSize);
+          
+          // Add border
+          ctx.strokeStyle = document.body.classList.contains('dark-mode') ? '#444' : '#ddd';
+          ctx.strokeRect(x, y, swatchSize, swatchSize);
+        });
+        
+        // Add click handler
+        canvas.addEventListener('click', (e) => {
+          const rect = canvas.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          
+          // Calculate which color was clicked
+          const col = Math.floor(x / (swatchSize + gap));
+          const row = Math.floor(y / (swatchSize + gap));
+          const index = row * maxPerRow + col;
+          
+          if (index < userPalette.length) {
+            // Remove color and re-render
+            userPalette.splice(index, 1);
+            renderCustomPalette();
+          }
+        });
+        
+        // Add the canvas to the container
+        customPalette.appendChild(canvas);
+      }
+      
+      function generateAsciiArt() {
+        if (!currentImage) {
+          showError('Please select an image first.');
+          return;
+        }
+        
+        // Stop any running animation
+        pauseAnimation();
+        animationControls.classList.add('hidden');
+        frameGallery.classList.add('hidden');
+        
+        // Show loading state
+        loadingSection.classList.remove('hidden');
+        resultSection.classList.add('hidden');
+        
+        // Use setTimeout to allow UI to update before processing
+        setTimeout(() => {
+          try {
+            // Get settings from current mode (simple or advanced)
+            const settings = getCurrentSettings();
+            const resolution = parseInt(settings.resolution) / 100;
+            const chars = getCharacterSet(settings);
+            
+            // Process image
+            const result = convertToAscii(currentImage, chars, resolution, settings);
+            
+            // Apply user styles
+            const fontSize = settings.fontSize;
+            const lineHeight = settings.lineHeight;
+            const letterSpacing = settings.letterSpacing;
+            const bgColor = settings.bgColor;
+            
+            // Display result
+            asciiOutput.style.fontSize = `${fontSize}px`;
+            asciiOutput.style.lineHeight = lineHeight;
+            asciiOutput.style.letterSpacing = `${letterSpacing}em`;
+            document.querySelector('.ascii-container').style.backgroundColor = bgColor;
+            
+            // Add text overlay if specified
+            applyTextOverlay(settings);
+            
+            // Hide loading and show result
+            loadingSection.classList.add('hidden');
+            resultSection.classList.remove('hidden');
+            
+            // Check if we should show the toy feature button
+            updateToyFeatureVisibility();
+            
+            // Scroll to the result
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+          } catch (error) {
+            console.error('Error generating ASCII art:', error);
+            loadingSection.classList.add('hidden');
+            showError('Error generating ASCII art. Please try again with a different image or settings.');
+          }
+        }, 50);
+      }
+      
+      function applyTextOverlay(settings) {
+        // Clear any existing overlays
+        textOverlayContainer.innerHTML = '';
+        
+        if (!settings.textInput) return;
+        
+        const text = settings.textInput;
+        const font = settings.textFont;
+        const size = settings.textSize;
+        const color = settings.textColor;
+        const position = settings.textPosition;
+        const mode = settings.textOverlayMode;
+        
+        // Create overlay element
+        const overlay = document.createElement('div');
+        overlay.classList.add('text-overlay');
+        overlay.id = 'activeTextOverlay'; // Add ID for easier access during save
+        
+        // Set position
+        switch (position) {
+          case 'top-left':
+            overlay.style.top = '10px';
+            overlay.style.left = '10px';
+            overlay.style.textAlign = 'left';
+            break;
+          case 'top-center':
+            overlay.style.top = '10px';
+            overlay.style.left = '0';
+            overlay.style.right = '0';
+            overlay.style.textAlign = 'center';
+            break;
+          case 'top-right':
+            overlay.style.top = '10px';
+            overlay.style.right = '10px';
+            overlay.style.textAlign = 'right';
+            break;
+          case 'middle-left':
+            overlay.style.top = '50%';
+            overlay.style.transform = 'translateY(-50%)';
+            overlay.style.left = '10px';
+            overlay.style.textAlign = 'left';
+            break;
+          case 'middle-center':
+            overlay.style.top = '50%';
+            overlay.style.left = '0';
+            overlay.style.right = '0';
+            overlay.style.transform = 'translateY(-50%)';
+            overlay.style.textAlign = 'center';
+            break;
+          case 'middle-right':
+            overlay.style.top = '50%';
+            overlay.style.transform = 'translateY(-50%)';
+            overlay.style.right = '10px';
+            overlay.style.textAlign = 'right';
+            break;
+          case 'bottom-left':
+            overlay.style.bottom = '10px';
+            overlay.style.left = '10px';
+            overlay.style.textAlign = 'left';
+            break;
+          case 'bottom-center':
+            overlay.style.bottom = '10px';
+            overlay.style.left = '0';
+            overlay.style.right = '0';
+            overlay.style.textAlign = 'center';
+            break;
+          case 'bottom-right':
+            overlay.style.bottom = '10px';
+            overlay.style.right = '10px';
+            overlay.style.textAlign = 'right';
+            break;
+        }
+        
+        // Set text styles
+        overlay.style.color = color;
+        
+        if (mode === 'direct') {
+          overlay.style.fontFamily = font;
+          overlay.style.fontSize = `${size}px`;
+          overlay.textContent = text;
+          overlay.dataset.mode = 'direct'; // Store mode as data attribute
+        } else {
+          // ASCII text conversion - convert text to ASCII art
+          overlay.style.fontFamily = 'monospace';
+          overlay.style.fontSize = `${Math.max(8, size / 3)}px`;
+          overlay.style.lineHeight = '1';
+          overlay.style.letterSpacing = '0';
+          overlay.style.whiteSpace = 'pre';
+          overlay.innerHTML = convertTextToAscii(text);
+          overlay.dataset.mode = 'ascii';
+          overlay.dataset.originalText = text; // Store original text for reference
+        }
+        
+        // Add to container
+        textOverlayContainer.appendChild(overlay);
+      }
+      
+      // HSL conversion utilities
+      function rgbToHsl(r, g, b) {
+        r /= 255;
+        g /= 255;
+        b /= 255;
+        
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+        
+        if (max === min) {
+          h = s = 0; // achromatic
+        } else {
+          const d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          
+          switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+          }
+          
+          h /= 6;
+        }
+        
+        return [h, s, l];
+      }
+      
+      function hslToRgb(h, s, l) {
+        let r, g, b;
+        
+        if (s === 0) {
+          r = g = b = l; // achromatic
+        } else {
+          const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+          };
+          
+          const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+          const p = 2 * l - q;
+          
+          r = hue2rgb(p, q, h + 1/3);
+          g = hue2rgb(p, q, h);
+          b = hue2rgb(p, q, h - 1/3);
+        }
+        
+        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+      }
+      
+      // Image processing functions
+      function applyContrast(data, width, height, contrast) {
+        const output = new Uint8ClampedArray(data.length);
+        
+        for (let i = 0; i < data.length; i += 4) {
+          // Apply contrast to RGB channels
+          for (let c = 0; c < 3; c++) {
+            const value = data[i + c];
+            const newValue = 128 + (value - 128) * contrast;
+            output[i + c] = Math.max(0, Math.min(255, newValue));
+          }
+          // Keep alpha channel
+          output[i + 3] = data[i + 3];
+        }
+        
+        return output;
+      }
+      
+      function applyBrightness(data, width, height, brightness) {
+        const output = new Uint8ClampedArray(data.length);
+        
+        for (let i = 0; i < data.length; i += 4) {
+          // Apply brightness to RGB channels
+          for (let c = 0; c < 3; c++) {
+            const value = data[i + c];
+            const newValue = value * brightness;
+            output[i + c] = Math.max(0, Math.min(255, newValue));
+          }
+          // Keep alpha channel
+          output[i + 3] = data[i + 3];
+        }
+        
+        return output;
+      }
+      
+      function applySaturation(data, width, height, saturation) {
+        const output = new Uint8ClampedArray(data.length);
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          
+          // Convert to HSL
+          const [h, s, l] = rgbToHsl(r, g, b);
+          
+          // Adjust saturation
+          const newS = Math.max(0, Math.min(1, s * saturation));
+          
+          // Convert back to RGB
+          const [newR, newG, newB] = hslToRgb(h, newS, l);
+          
+          // Set output
+          output[i] = newR;
+          output[i + 1] = newG;
+          output[i + 2] = newB;
+          output[i + 3] = data[i + 3]; // Keep alpha
+        }
+        
+        return output;
+      }
+      
+      function applyGamma(data, width, height, gamma) {
+        const output = new Uint8ClampedArray(data.length);
+        const gammaCorrection = 1 / gamma;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          // Apply gamma to RGB channels
+          for (let c = 0; c < 3; c++) {
+            const value = data[i + c] / 255;
+            const newValue = Math.pow(value, gammaCorrection) * 255;
+            output[i + c] = Math.max(0, Math.min(255, newValue));
+          }
+          // Keep alpha channel
+          output[i + 3] = data[i + 3];
+        }
+        
+        return output;
+      }
+      
+      function applyPixelate(data, width, height, blockSize = 5) {
+        const output = new Uint8ClampedArray(data.length);
+        
+        for (let y = 0; y < height; y += blockSize) {
+          for (let x = 0; x < width; x += blockSize) {
+            // Calculate block boundaries
+            const blockWidth = Math.min(blockSize, width - x);
+            const blockHeight = Math.min(blockSize, height - y);
+            
+            // Calculate average color in the block
+            let r = 0, g = 0, b = 0, count = 0;
+            
+            for (let by = 0; by < blockHeight; by++) {
+              for (let bx = 0; bx < blockWidth; bx++) {
+                const idx = ((y + by) * width + (x + bx)) * 4;
+                r += data[idx];
+                g += data[idx + 1];
+                b += data[idx + 2];
+                count++;
+              }
+            }
+            
+            r = Math.round(r / count);
+            g = Math.round(g / count);
+            b = Math.round(b / count);
+            
+            // Fill the block with the average color
+            for (let by = 0; by < blockHeight; by++) {
+              for (let bx = 0; bx < blockWidth; bx++) {
+                const idx = ((y + by) * width + (x + bx)) * 4;
+                output[idx] = r;
+                output[idx + 1] = g;
+                output[idx + 2] = b;
+                output[idx + 3] = data[idx + 3]; // Keep original alpha
+              }
+            }
+          }
+        }
+        
+        return output;
+      }
+      
+      function applyEdgeDetection(data, width, height) {
+        const output = new Uint8ClampedArray(data.length);
+        const grayscale = new Uint8ClampedArray(width * height);
+        
+        // Convert to grayscale first
+        for (let i = 0; i < width * height; i++) {
+          const idx = i * 4;
+          grayscale[i] = Math.round(0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2]);
+        }
+        
+        // Sobel operator
+        const sobelX = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
+        const sobelY = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
+        
+        // Apply Sobel operator
+        for (let y = 1; y < height - 1; y++) {
+          for (let x = 1; x < width - 1; x++) {
+            let gx = 0, gy = 0;
+            
+            // Apply convolution
+            for (let ky = -1; ky <= 1; ky++) {
+              for (let kx = -1; kx <= 1; kx++) {
+                const index = (y + ky) * width + (x + kx);
+                const kernelIdx = (ky + 1) * 3 + (kx + 1);
+                
+                gx += grayscale[index] * sobelX[kernelIdx];
+                gy += grayscale[index] * sobelY[kernelIdx];
+              }
+            }
+            
+            // Calculate magnitude
+            const magnitude = Math.min(255, Math.sqrt(gx * gx + gy * gy));
+            
+            // Set output pixel
+            const outputIdx = (y * width + x) * 4;
+            output[outputIdx] = magnitude;
+            output[outputIdx + 1] = magnitude;
+            output[outputIdx + 2] = magnitude;
+            output[outputIdx + 3] = data[outputIdx + 3]; // Keep alpha
+          }
+        }
+        
+        // Handle borders (just copy original values)
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+              const idx = (y * width + x) * 4;
+              output[idx] = data[idx];
+              output[idx + 1] = data[idx + 1];
+              output[idx + 2] = data[idx + 2];
+              output[idx + 3] = data[idx + 3];
+            }
+          }
+        }
+        
+        return output;
+      }
+      
+      // Dithering algorithms
+      const ditherAlgorithms = {
+        // Floyd-Steinberg dithering with multi-level support
+        floydSteinberg: (imageData, width, height, chars) => {
+          const data = new Uint8ClampedArray(imageData.data);
+          const output = new Uint8ClampedArray(imageData.data);
+          const levels = chars.length;
+          const levelStep = 256 / levels;
+          
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const idx = (y * width + x) * 4;
+              const oldR = data[idx];
+              const oldG = data[idx + 1];
+              const oldB = data[idx + 2];
+              
+              // Convert to grayscale using standard luminance formula
+              const oldPixel = Math.round(0.299 * oldR + 0.587 * oldG + 0.114 * oldB);
+              
+              // Find closest level (multi-level quantization)
+              const levelIndex = Math.min(levels - 1, Math.floor(oldPixel / levelStep));
+              const newPixel = Math.round(levelIndex * levelStep);
+              
+              // Calculate quantization error
+              const error = oldPixel - newPixel;
+              
+              // Set output pixel - use grayscale value matching character brightness
+              output[idx] = output[idx + 1] = output[idx + 2] = newPixel;
+              output[idx + 3] = data[idx + 3]; // Keep alpha
+              
+              // Distribute error to neighboring pixels
+              if (x + 1 < width) {
+                data[(y * width + x + 1) * 4] += error * 7 / 16;
+                data[(y * width + x + 1) * 4 + 1] += error * 7 / 16;
+                data[(y * width + x + 1) * 4 + 2] += error * 7 / 16;
+              }
+              
+              if (y + 1 < height) {
+                if (x - 1 >= 0) {
+                  data[((y + 1) * width + x - 1) * 4] += error * 3 / 16;
+                  data[((y + 1) * width + x - 1) * 4 + 1] += error * 3 / 16;
+                  data[((y + 1) * width + x - 1) * 4 + 2] += error * 3 / 16;
+                }
+                
+                data[((y + 1) * width + x) * 4] += error * 5 / 16;
+                data[((y + 1) * width + x) * 4 + 1] += error * 5 / 16;
+                data[((y + 1) * width + x) * 4 + 2] += error * 5 / 16;
+                
+                if (x + 1 < width) {
+                  data[((y + 1) * width + x + 1) * 4] += error * 1 / 16;
+                  data[((y + 1) * width + x + 1) * 4 + 1] += error * 1 / 16;
+                  data[((y + 1) * width + x + 1) * 4 + 2] += error * 1 / 16;
+                }
+              }
+            }
+          }
+          
+          return output;
+        },
+        
+        // Other simplified dithering algorithms implementation
+        bayer: (imageData, width, height, chars) => {
+          return ditherAlgorithms.floydSteinberg(imageData, width, height, chars); // Simplified placeholder
+        },
+        
+        minAvgErr: (imageData, width, height, chars) => {
+          return ditherAlgorithms.floydSteinberg(imageData, width, height, chars); // Simplified placeholder
+        },
+        
+        burkes: (imageData, width, height, chars) => {
+          return ditherAlgorithms.floydSteinberg(imageData, width, height, chars); // Simplified placeholder
+        },
+        
+        sierra: (imageData, width, height, chars) => {
+          return ditherAlgorithms.floydSteinberg(imageData, width, height, chars); // Simplified placeholder
+        },
+        
+        stucki: (imageData, width, height, chars) => {
+          return ditherAlgorithms.floydSteinberg(imageData, width, height, chars); // Simplified placeholder
+        },
+        
+        atkinson: (imageData, width, height, chars) => {
+          return ditherAlgorithms.floydSteinberg(imageData, width, height, chars); // Simplified placeholder
+        }
+      };
+      
+      function getColorFromPalette(brightness, palette) {
+        // Map brightness (0-1) to palette index
+        const index = Math.min(palette.length - 1, Math.floor(brightness * palette.length));
+        return palette[index];
+      }
+      
+      function convertToAscii(image, chars, resolution, settings) {
+        // Apply character randomization if enabled
+        const randomizationPercent = parseInt(settings.charRandomizer) || 0;
+        const shouldRandomize = randomizationPercent > 0;
+        
+        // Get brightness threshold values
+        const brightnessThresholdMin = parseInt(settings.brightnessThresholdMin) / 100 || 0;
+        const brightnessThresholdMax = parseInt(settings.brightnessThresholdMax) / 100 || 1.0;
+        const thresholdMaskMode = settings.thresholdMaskMode || 'transparent';
+        const thresholdMaskCustomChar = settings.thresholdMaskCustomChar || ' ';
+        const useThresholdMask = brightnessThresholdMin > 0 || brightnessThresholdMax < 1.0;
+        
+        // Create a randomized version of the character set if needed
+        let effectiveChars = chars;
+        if (shouldRandomize) {
+          const charsArray = chars.split('');
+          // Make a copy of the character set to randomly replace some characters
+          effectiveChars = charsArray.map(char => {
+            if (Math.random() * 100 < randomizationPercent) {
+              // Replace with a random character from the set
+              return charsArray[Math.floor(Math.random() * charsArray.length)];
+            }
+            return char;
+          }).join('');
+        }
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        // Calculate dimensions based on resolution
+        let width = Math.floor(image.width * resolution);
+        let height = Math.floor(image.height * resolution);
+        
+        // Ensure minimum dimensions
+        width = Math.max(width, 10);
+        height = Math.max(height, 10);
+        
+        // Limit maximum dimensions to prevent browser freezing
+        const maxDimension = 300;
+        if (width > maxDimension) {
+          const ratio = maxDimension / width;
+          width = maxDimension;
+          height = Math.floor(height * ratio);
+        }
+        
+        if (height > maxDimension) {
+          const ratio = maxDimension / height;
+          height = maxDimension;
+          width = Math.floor(width * ratio);
+        }
+        
+        // Set canvas dimensions
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw image to canvas
+        ctx.drawImage(image, 0, 0, width, height);
+        
+        // Get image data
+        let imageData = ctx.getImageData(0, 0, width, height);
+        let data = imageData.data;
+        
+        // Apply image processing in sequence
+        const colorMode = settings.colorMode;
+        const ditheringMode = settings.dithering;
+        
+        // Apply brightness
+        if (settings.brightness !== 1.0) {
+          data = applyBrightness(data, width, height, parseFloat(settings.brightness));
+        }
+        
+        // Apply contrast
+        if (settings.contrast !== 1.0) {
+          data = applyContrast(data, width, height, parseFloat(settings.contrast));
+        }
+        
+        // Apply saturation
+        if (settings.saturation !== 1.0) {
+          data = applySaturation(data, width, height, parseFloat(settings.saturation));
+        }
+        
+        // Apply gamma
+        if (settings.gamma !== 1.0) {
+          data = applyGamma(data, width, height, parseFloat(settings.gamma));
+        }
+        
+        // Apply pixelate if enabled
+        if (settings.pixelate) {
+          data = applyPixelate(data, width, height, 3);
+        }
+        
+        // Apply edge detection if enabled
+        if (settings.edgeDetect) {
+          data = applyEdgeDetection(data, width, height);
+        }
+        
+        // Apply dithering if enabled
+        if (ditheringMode !== 'none' && colorMode === 'greyscale') {
+          try {
+            data = ditherAlgorithms[ditheringMode](
+              new ImageData(new Uint8ClampedArray(data), width, height),
+              width,
+              height,
+              chars
+            );
+          } catch (error) {
+            console.error("Dithering error:", error);
+          }
+        }
+        
+        // Create a new ImageData with processed data
+        const processedImageData = new ImageData(
+          new Uint8ClampedArray(data),
+          width,
+          height
+        );
+        
+        // Get appropriate color palette if needed
+        let palette = [];
+        if (colorMode === 'palette') {
+          if (settings.palette === 'custom') {
+            palette = userPalette.length > 0 ? userPalette : colorPalettes.monochrome;
+          } else {
+            palette = colorPalettes[settings.palette] || colorPalettes.monochrome;
+          }
+        }
+        
+        // Handle different color modes for ASCII output
+        let asciiText = '';
+        let colorHTML = ''; // Store HTML for color modes
+        
+        if (colorMode === 'color') {
+          // OPTIMIZED: Colored ASCII art - use canvas for rendering instead of many DOM elements
+          // Create a canvas for rendering colored ASCII
+          const colorCanvas = document.createElement('canvas');
+          const colorCtx = colorCanvas.getContext('2d');
+          
+          // Further reduce dimensions for color mode to improve performance
+          const colorMaxDimension = 80; // Even lower threshold for color mode
+          if (width > colorMaxDimension) {
+            const ratio = colorMaxDimension / width;
+            width = colorMaxDimension;
+            height = Math.floor(height * ratio);
+            
+            // Redraw with new dimensions
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(image, 0, 0, width, height);
+            imageData = ctx.getImageData(0, 0, width, height);
+            data = imageData.data;
+            
+            // Re-apply image processing with new dimensions
+            if (settings.brightness !== 1.0) {
+              data = applyBrightness(data, width, height, parseFloat(settings.brightness));
+            }
+            if (settings.contrast !== 1.0) {
+              data = applyContrast(data, width, height, parseFloat(settings.contrast));
+            }
+            if (settings.saturation !== 1.0) {
+              data = applySaturation(data, width, height, parseFloat(settings.saturation));
+            }
+            if (settings.gamma !== 1.0) {
+              data = applyGamma(data, width, height, parseFloat(settings.gamma));
+            }
+          }
+          
+          // Prepare HTML for display
+          let coloredHtml = '';
+          
+          // Process all rows and build HTML
+          for (let y = 0; y < height; y++) {
+            let rowHtml = '';
+            for (let x = 0; x < width; x++) {
+              const offset = (y * width + x) * 4;
+              const r = data[offset];
+              const g = data[offset + 1];
+              const b = data[offset + 2];
+              
+              // Calculate brightness for character selection
+              const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+              
+              // Check if pixel is within brightness threshold range
+              let char;
+              
+              if (useThresholdMask && (brightness < brightnessThresholdMin || brightness > brightnessThresholdMax)) {
+                // Pixel is outside threshold range - handle according to mask mode
+                if (thresholdMaskMode === 'transparent') {
+                  // Use an empty space for "transparent" pixels
+                  char = ' ';
+                } else if (thresholdMaskMode === 'space') {
+                  // Use a space character
+                  char = ' ';
+                } else if (thresholdMaskMode === 'custom') {
+                  // Use the custom character
+                  char = thresholdMaskCustomChar;
+                }
+              } else {
+                // Pixel is inside threshold range - use normal character mapping
+                const charIndex = Math.floor(brightness * (effectiveChars.length - 1));
+                char = effectiveChars[charIndex];
+              }
+              
+              // Store character for plain text copy
+              asciiText += char;
+              
+              // Add to HTML with inline style (more efficient)
+              rowHtml += `<span style="color:rgb(${r},${g},${b})">${char}</span>`;
+            }
+            coloredHtml += rowHtml + '<br>';
+            asciiText += '\n';
+          }
+          
+          // Store the HTML for later reference
+          colorHTML = coloredHtml;
+          
+          // Set HTML content
+          asciiOutput.innerHTML = coloredHtml;
+          
+          // Set style for better display
+          asciiOutput.style.display = 'inline-block';
+          asciiOutput.style.minWidth = 'max-content';
+          
+        } else if (colorMode === 'palette') {
+          // Palette-based ASCII art with optimized rendering
+          let coloredHtml = '';
+          
+          for (let y = 0; y < height; y++) {
+            let rowHtml = '';
+            
+            for (let x = 0; x < width; x++) {
+              const offset = (y * width + x) * 4;
+              const r = data[offset];
+              const g = data[offset + 1];
+              const b = data[offset + 2];
+              
+              // Calculate brightness for character and color selection
+              const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+              
+              // Map brightness to character
+              const charIndex = Math.floor(brightness * (chars.length - 1));
+              const char = chars[charIndex];
+              
+              // Map brightness to color from palette
+              const color = getColorFromPalette(brightness, palette);
+              
+              // Store character for plain text copy
+              asciiText += char;
+              
+              // Add to row HTML with simplified styling
+              rowHtml += `<span style="color:${color}">${char}</span>`;
+            }
+            
+            coloredHtml += rowHtml + '<br>';
+            asciiText += '\n';
+          }
+          
+          // Store the HTML for later reference
+          colorHTML = coloredHtml;
+          
+          // Set HTML content directly
+          asciiOutput.innerHTML = coloredHtml;
+          
+          // Set style for better display
+          asciiOutput.style.display = 'inline-block';
+          asciiOutput.style.minWidth = 'max-content';
+        } else {
+          // Traditional greyscale ASCII art - fast and efficient
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const offset = (y * width + x) * 4;
+              const r = data[offset];
+              const g = data[offset + 1];
+              const b = data[offset + 2];
+              
+              // Calculate brightness
+              const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+              
+              // Map brightness to character
+              const charIndex = Math.floor(brightness * (chars.length - 1));
+              asciiText += chars[charIndex];
+            }
+            asciiText += '\n';
+          }
+          
+          // Set text content directly
+          asciiOutput.textContent = asciiText;
+        }
+        
+        return { 
+          asciiText, 
+          colorHTML,
+          width, 
+          height, 
+          isColored: colorMode !== 'greyscale'
+        };
+      }
+      
+      function saveAsImage() {
+        try {
+          const settings = getCurrentSettings();
+          const colorMode = settings.colorMode;
+          const fontSize = parseInt(settings.fontSize);
+          const lineHeight = parseFloat(settings.lineHeight);
+          const letterSpacing = parseFloat(settings.letterSpacing);
+          const bgColor = settings.bgColor;
+          
+          // Create a canvas with proper dimensions
+          let canvas, ctx;
+          
+          if (colorMode === 'greyscale') {
+            // For greyscale ASCII art - direct text rendering
+            const lines = asciiOutput.textContent.split('\n');
+            const maxLineLength = Math.max(...lines.map(line => line.length));
+            
+            // Calculate dimensions based on character metrics
+            const charWidth = fontSize * 0.6 * (1 + parseFloat(letterSpacing));
+            const charHeight = fontSize * lineHeight;
+            
+            canvas = document.createElement('canvas');
+            ctx = canvas.getContext('2d');
+            
+            // Set canvas size with padding
+            canvas.width = Math.ceil(maxLineLength * charWidth) + 40;
+            canvas.height = Math.ceil(lines.length * charHeight) + 40;
+            
+            // Fill background
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw ASCII text
+            ctx.font = `${fontSize}px monospace`;
+            ctx.fillStyle = '#000000';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            
+            for (let i = 0; i < lines.length; i++) {
+              const y = 20 + i * charHeight;
+              
+              for (let j = 0; j < lines[i].length; j++) {
+                ctx.fillText(
+                  lines[i][j],
+                  20 + j * charWidth,
+                  y
+                );
+              }
+            }
+            
+            // Add text overlay if present
+            renderTextOverlayToCanvas(ctx, canvas.width, canvas.height);
+            
+            // Generate data URL and display
+            const dataUrl = canvas.toDataURL('image/png');
+            downloadImage.src = dataUrl;
+            downloadImage.style.display = 'block';
+            saveInstructions.classList.remove('hidden');
+            
+            // Scroll to save instructions
+            saveInstructions.scrollIntoView({ behavior: 'smooth' });
+          } else {
+            // For colored ASCII or palette mode - carefully render HTML content
+            // Create a buffer with properly formatted HTML
+            const outputDiv = document.createElement('div');
+            outputDiv.style.fontFamily = 'monospace';
+            outputDiv.style.fontSize = `${fontSize}px`;
+            outputDiv.style.lineHeight = lineHeight;
+            outputDiv.style.letterSpacing = `${letterSpacing}em`;
+            outputDiv.style.backgroundColor = bgColor;
+            outputDiv.style.padding = '20px';
+            outputDiv.style.whiteSpace = 'pre';
+            outputDiv.style.display = 'inline-block';
+            
+            // Get ASCII content from the display
+            const htmlContent = asciiOutput.innerHTML;
+            
+            // Clean up and format the HTML correctly
+            // Replace <br> with proper line breaks to maintain multiline structure
+            const formattedHTML = htmlContent
+              .replace(/<br\s*\/?>/gi, '</div><div>')
+              .replace(/^/, '<div>')
+              .replace(/$/, '</div>');
+            
+            outputDiv.innerHTML = formattedHTML;
+            
+            // Add to document temporarily to get proper dimensions
+            document.body.appendChild(outputDiv);
+            const width = outputDiv.offsetWidth;
+            const height = outputDiv.offsetHeight;
+            
+            // Create canvas with proper dimensions
+            canvas = document.createElement('canvas');
+            ctx = canvas.getContext('2d');
+            canvas.width = width + 20;
+            canvas.height = height + 40; // Extra padding for text overlay
+            
+            // Fill background
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Manual rendering approach - detect all color spans and draw chars
+            const rows = Array.from(outputDiv.querySelectorAll('div'));
+            let curY = 20; // Start a bit lower to leave room for any overlay text
+            
+            rows.forEach(row => {
+              let curX = 10;
+              // Process each span or text node in the row
+              Array.from(row.childNodes).forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                  // Plain text node
+                  ctx.fillStyle = '#000'; // Default color
+                  ctx.font = `${fontSize}px monospace`;
+                  ctx.textBaseline = 'top';
+                  
+                  // Draw each character separately to maintain proper spacing
+                  for (let i = 0; i < node.textContent.length; i++) {
+                    ctx.fillText(node.textContent[i], curX, curY);
+                    curX += fontSize * 0.6 * (1 + parseFloat(letterSpacing));
+                  }
+                } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'SPAN') {
+                  // Colored span
+                  const color = node.style.color || '#000';
+                  ctx.fillStyle = color;
+                  ctx.font = `${fontSize}px monospace`;
+                  ctx.textBaseline = 'top';
+                  
+                  // Draw each character separately
+                  for (let i = 0; i < node.textContent.length; i++) {
+                    ctx.fillText(node.textContent[i], curX, curY);
+                    curX += fontSize * 0.6 * (1 + parseFloat(letterSpacing));
+                  }
+                }
+              });
+              
+              // Move to next row
+              curY += fontSize * lineHeight;
+            });
+            
+            // Remove temporary element
+            document.body.removeChild(outputDiv);
+            
+            // Add text overlay if present
+            renderTextOverlayToCanvas(ctx, canvas.width, canvas.height);
+            
+            // Generate data URL and display
+            const dataUrl = canvas.toDataURL('image/png');
+            downloadImage.src = dataUrl;
+            downloadImage.style.display = 'block';
+            saveInstructions.classList.remove('hidden');
+            
+            // Scroll to save instructions
+            saveInstructions.scrollIntoView({ behavior: 'smooth' });
+          }
+        } catch (error) {
+          console.error('Error saving image:', error);
+          showError('Error saving image. Please try again.');
+        }
+      }
+      
+      // Function to render text overlay to a canvas
+      function renderTextOverlayToCanvas(ctx, canvasWidth, canvasHeight) {
+        const textOverlay = document.getElementById('activeTextOverlay');
+        if (!textOverlay) return;
+        
+        // Get overlay properties
+        const mode = textOverlay.dataset.mode;
+        const color = textOverlay.style.color;
+        const position = textOverlay.style.textAlign || 'center';
+        let x, y;
+        
+        // Calculate position
+        if (textOverlay.style.top === '50%' || textOverlay.style.transform?.includes('translateY(-50%)')) {
+          // Middle position
+          y = canvasHeight / 2;
+        } else if (textOverlay.style.bottom) {
+          // Bottom position
+          y = canvasHeight - 30;
+        } else {
+          // Top position (default)
+          y = 20;
+        }
+        
+        if (position === 'left' || textOverlay.style.left === '10px') {
+          x = 20;
+          ctx.textAlign = 'left';
+        } else if (position === 'right' || textOverlay.style.right === '10px') {
+          x = canvasWidth - 20;
+          ctx.textAlign = 'right';
+        } else {
+          // Center position (default)
+          x = canvasWidth / 2;
+          ctx.textAlign = 'center';
+        }
+        
+        if (mode === 'ascii') {
+          // ASCII text mode - need to render the ASCII art text
+          const originalText = textOverlay.dataset.originalText || '';
+          const fontSize = parseInt(textOverlay.style.fontSize) || 8;
+          
+          // Convert to ASCII and render
+          const asciiText = convertTextToAscii(originalText);
+          const lines = asciiText.split('\n');
+          
+          ctx.font = `${fontSize}px monospace`;
+          ctx.fillStyle = color;
+          
+          // Draw each line of the ASCII text
+          for (let i = 0; i < lines.length; i++) {
+            ctx.fillText(lines[i], x, y + (i * fontSize));
+          }
+        } else {
+          // Direct text mode
+          const text = textOverlay.textContent;
+          const font = textOverlay.style.fontFamily;
+          const fontSize = parseInt(textOverlay.style.fontSize) || 24;
+          
+          ctx.font = `${fontSize}px ${font}`;
+          ctx.fillStyle = color;
+          ctx.fillText(text, x, y);
+        }
+      }
+      
+      function copyAsciiText() {
+        try {
+          const text = asciiOutput.textContent || '';
+          
+          // Use the clipboard API
+          navigator.clipboard.writeText(text)
+            .then(() => {
+              const originalText = copyTextBtn.textContent;
+              copyTextBtn.textContent = 'Copied!';
+              setTimeout(() => {
+                copyTextBtn.textContent = originalText;
+              }, 2000);
+            })
+            .catch(err => {
+              console.error('Failed to copy text:', err);
+              showError('Failed to copy text. Please try again.');
+            });
+        } catch (error) {
+          console.error('Error copying text:', error);
+          showError('Error copying text. Please try again.');
+        }
+      }
+      
+      function resetToNewImage() {
+        // Reset media
+        currentImage = null;
+        currentVideo = null;
+        imageInput.value = '';
+        videoInput.value = '';
+        
+        // Stop any animation
+        pauseAnimation();
+        asciiFrames = [];
+        framePreviews = [];
+        
+        // Hide sections
+        previewSection.classList.add('hidden');
+        controlsSection.classList.add('hidden');
+        resultSection.classList.add('hidden');
+        saveInstructions.classList.add('hidden');
+        downloadImage.style.display = 'none';
+        frameGallery.classList.add('hidden');
+        hideError();
+        
+        // Reset preview areas
+        imagePreview.classList.add('hidden');
+        videoPreview.classList.add('hidden');
+        videoWarning.classList.add('hidden');
+        animationControls.classList.add('hidden');
+        
+        // Reset sliders to default values
+        resolutionSlider.value = 100;
+        resolutionValue.textContent = '100';
+        fontSizeSlider.value = 10;
+        fontSizeValue.textContent = '10';
+        lineHeightSlider.value = 1.0;
+        lineHeightValue.textContent = '1.0';
+        letterSpacingSlider.value = 0.5;
+        letterSpacingValue.textContent = '0.5';
+        invertCheckbox.checked = false;
+        bgColorPicker.value = '#ffffff';
+        styleSelect.value = 'default';
+        contrastSlider.value = 1.0;
+        contrastValue.textContent = '1.0';
+        brightnessSlider.value = 1.0;
+        brightnessValue.textContent = '1.0';
+        saturationSlider.value = 1.0;
+        saturationValue.textContent = '1.0';
+        gammaSlider.value = 1.0;
+        gammaValue.textContent = '1.0';
+        colorModeSelect.value = 'greyscale';
+        ditheringSelect.value = 'none';
+        customCharsContainer.classList.add('hidden');
+        colorPaletteSelect.classList.add('hidden');
+        customPaletteContainer.classList.add('hidden');
+        pixelateCheckbox.checked = false;
+        edgeDetectCheckbox.checked = false;
+        
+        // Reset simple mode controls
+        brightnessSliderSimple.value = 1.0;
+        brightnessValueSimple.textContent = '1.0';
+        contrastSliderSimple.value = 1.0;
+        contrastValueSimple.textContent = '1.0';
+        letterSpacingSliderSimple.value = 0.5;
+        letterSpacingValueSimple.textContent = '0.5';
+        lineHeightSliderSimple.value = 1.0;
+        lineHeightValueSimple.textContent = '1.0';
+        
+        // Reset animation controls
+        fpsSlider.value = 15;
+        fpsValue.textContent = '15';
+        animResolutionSlider.value = 50;
+        animResolutionValue.textContent = '50';
+        skipFramesSlider.value = 1;
+        skipFramesValue.textContent = '1';
+        
+        // Reset text overlay
+        textInput.value = '';
+        textSizeSlider.value = 24;
+        textSizeValue.textContent = '24';
+        textColorPicker.value = '#ffffff';
+        textPosition.value = 'top-center';
+        textOverlayMode.value = 'direct';
+        textFont.value = 'Consolas';
+        updateTextPreview();
+        
+        // Set first tab as active
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        tabContents.forEach(content => content.classList.remove('active'));
+        document.querySelector('.tab-button[data-tab="basic"]').classList.add('active');
+        document.getElementById('basic-tab').classList.add('active');
+        
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      
+      function showError(message) {
+        errorMessage.textContent = message;
+        errorSection.classList.remove('hidden');
+        loadingSection.classList.add('hidden');
+      }
+      
+      function hideError() {
+        errorSection.classList.add('hidden');
+      }
+      
+      function resetError() {
+        hideError();
+      }
+      
+      // Initialize the app - start in advanced mode unless in mobile view
+      simpleModelToggle.checked = !inMobileMode;
+      
+      if (inMobileMode) {
+        simpleControls.classList.remove('hidden');
+        advancedControls.classList.add('hidden');
+      } else {
+        simpleControls.classList.add('hidden');
+        advancedControls.classList.remove('hidden');
+      }
+      
+      // Initialize the toy feature elements after DOM is fully loaded
+      toyFeatureContainer = document.getElementById('toyFeatureContainer');
+      toyWithCreationBtn = document.getElementById('toyWithCreationBtn');
+    });
+  </script>
+</body>
+</html>
