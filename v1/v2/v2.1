@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCII Art Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --primary-color: #5D5CDE;
+      --light-bg: #FFFFFF;
+      --light-text: #333333;
+      --dark-bg: #181818;
+      --dark-text: #F5F5F5;
+      --error-color: #e74c3c;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: var(--dark-bg);
+        color: var(--dark-text);
+      }
+      
+      .theme-card {
+        background-color: #2a2a2a;
+        border-color: #3a3a3a;
+      }
+      
+      input, select {
+        background-color: #2a2a2a;
+        color: var(--dark-text);
+        border-color: #3a3a3a;
+      }
+      
+      button:not(.primary-btn) {
+        background-color: #2a2a2a;
+        color: var(--dark-text);
+        border-color: #3a3a3a;
+      }
+      
+      .slider::-webkit-slider-thumb {
+        background: var(--primary-color);
+      }
+      
+      .slider::-moz-range-thumb {
+        background: var(--primary-color);
+      }
+    }
+
+    @media (prefers-color-scheme: light) {
+      body {
+        background-color: var(--light-bg);
+        color: var(--light-text);
+      }
+      
+      .theme-card {
+        background-color: #f7f7f7;
+        border-color: #e1e1e1;
+      }
+      
+      input, select {
+        background-color: #f7f7f7;
+        color: var(--light-text);
+        border-color: #e1e1e1;
+      }
+      
+      button:not(.primary-btn) {
+        background-color: #f7f7f7;
+        color: var(--light-text);
+        border-color: #e1e1e1;
+      }
+      
+      .slider::-webkit-slider-thumb {
+        background: var(--primary-color);
+      }
+      
+      .slider::-moz-range-thumb {
+        background: var(--primary-color);
+      }
+    }
+
+    .primary-btn {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 10px;
+      border-radius: 5px;
+      background: #d3d3d3;
+      outline: none;
+      margin: 10px 0;
+    }
+    
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    .slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    .ascii-pre {
+      font-family: monospace;
+      font-size: 10px;
+      line-height: 1;
+      letter-spacing: 0.1em;
+      white-space: pre;
+      text-align: center;
+      overflow: hidden;
+    }
+    
+    #imagePreview {
+      max-width: 100%;
+      max-height: 300px;
+      margin: 0 auto;
+      display: block;
+    }
+    
+    #asciiOutput {
+      max-width: 100%;
+      overflow: auto;
+    }
+    
+    .ascii-container {
+      display: flex;
+      justify-content: center;
+      max-width: 100%;
+      overflow: auto;
+      background-color: white;
+    }
+    
+    #downloadImage {
+      display: none;
+    }
+    
+    .loading-spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border-left-color: var(--primary-color);
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .error-msg {
+      color: var(--error-color);
+      font-weight: bold;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 640px) {
+      .control-container {
+        flex-direction: column;
+      }
+      
+      .control-item {
+        width: 100%;
+        margin-bottom: 1rem;
+      }
+    }
+  </style>
+</head>
+<body class="p-4 min-h-screen">
+  <div class="max-w-4xl mx-auto theme-card rounded-xl p-6 shadow-md border">
+    <h1 class="text-2xl font-bold text-center mb-6">ASCII Art Generator</h1>
+    
+    <div class="mb-6">
+      <div class="flex flex-col items-center justify-center border-2 border-dashed border-gray-400 rounded-lg p-4 text-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 transition-colors" id="dropZone">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        <p class="text-sm text-gray-500 mb-2">Drag and drop an image or click to select</p>
+        <input type="file" id="imageInput" accept="image/*" class="hidden">
+        <button id="selectImageBtn" class="primary-btn rounded px-4 py-2 text-base">Select Image</button>
+      </div>
+    </div>
+    
+    <div id="previewSection" class="mb-6 hidden">
+      <h2 class="text-xl font-bold mb-2">Image Preview</h2>
+      <div class="flex justify-center">
+        <img id="imagePreview" src="" alt="Preview" class="rounded-lg">
+      </div>
+    </div>
+    
+    <div id="controlsSection" class="mb-6 hidden">
+      <h2 class="text-xl font-bold mb-4">ASCII Art Settings</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label for="styleSelect" class="block mb-2 font-medium">Character Style:</label>
+          <select id="styleSelect" class="w-full px-3 py-2 border rounded-lg text-base">
+            <option value="default">Default (ASCII characters)</option>
+            <option value="simple">Simple (█▓▒░ )</option>
+            <option value="blocks">Block Elements (█▉▍▎)</option>
+            <option value="circles">Circles (●◉◍○)</option>
+            <option value="rectangles">Rectangles (■□▢▣)</option>
+            <option value="custom">Custom Characters</option>
+          </select>
+        </div>
+        
+        <div id="customCharsContainer" class="hidden">
+          <label for="customChars" class="block mb-2 font-medium">Custom Characters:</label>
+          <input type="text" id="customChars" class="w-full px-3 py-2 border rounded-lg text-base" placeholder="@#$%&?!;:+=-_" value="@#$%&?!;:+=-_">
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label for="resolutionSlider" class="block mb-2 font-medium">Resolution: <span id="resolutionValue">100</span>%</label>
+          <input type="range" id="resolutionSlider" class="slider w-full" min="10" max="200" value="100">
+        </div>
+        
+        <div>
+          <label for="invertCheckbox" class="font-medium flex items-center cursor-pointer">
+            <input type="checkbox" id="invertCheckbox" class="mr-2 h-5 w-5">
+            Invert Colors
+          </label>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label for="contrastSlider" class="block mb-2 font-medium">Contrast: <span id="contrastValue">1.0</span></label>
+          <input type="range" id="contrastSlider" class="slider w-full" min="0.1" max="3" step="0.1" value="1.0">
+        </div>
+        
+        <div>
+          <label for="saturationSlider" class="block mb-2 font-medium">Saturation: <span id="saturationValue">1.0</span></label>
+          <input type="range" id="saturationSlider" class="slider w-full" min="0" max="3" step="0.1" value="1.0">
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label for="colorModeSelect" class="block mb-2 font-medium">Color Mode:</label>
+          <select id="colorModeSelect" class="w-full px-3 py-2 border rounded-lg text-base">
+            <option value="greyscale">Greyscale</option>
+            <option value="color">Colorful ASCII</option>
+          </select>
+        </div>
+        
+        <div id="ditheringContainer">
+          <label for="ditheringSelect" class="block mb-2 font-medium">Dithering:</label>
+          <select id="ditheringSelect" class="w-full px-3 py-2 border rounded-lg text-base">
+            <option value="none">None</option>
+            <option value="floydSteinberg">Floyd-Steinberg</option>
+            <option value="bayer">Bayer</option>
+            <option value="minAvgErr">MinAvgErr</option>
+            <option value="burkes">Burkes</option>
+            <option value="sierra">Sierra</option>
+            <option value="stucki">Stucki</option>
+            <option value="atkinson">Atkinson</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label for="fontSizeSlider" class="block mb-2 font-medium">Character Size: <span id="fontSizeValue">10</span>px</label>
+          <input type="range" id="fontSizeSlider" class="slider w-full" min="4" max="24" value="10">
+        </div>
+        
+        <div>
+          <label for="lineHeightSlider" class="block mb-2 font-medium">Line Height: <span id="lineHeightValue">1.0</span></label>
+          <input type="range" id="lineHeightSlider" class="slider w-full" min="0.5" max="2" step="0.1" value="1.0">
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="letterSpacingSlider" class="block mb-2 font-medium">Letter Spacing: <span id="letterSpacingValue">0.5</span>em</label>
+          <input type="range" id="letterSpacingSlider" class="slider w-full" min="0" max="1" step="0.05" value="0.5">
+        </div>
+        
+        <div>
+          <label for="bgColorPicker" class="block mb-2 font-medium">Background Color:</label>
+          <input type="color" id="bgColorPicker" class="w-full h-10 rounded-lg" value="#ffffff">
+        </div>
+      </div>
+      
+      <div class="mt-6 flex justify-center">
+        <button id="generateBtn" class="primary-btn rounded-lg px-6 py-3 text-lg font-semibold">Generate ASCII Art</button>
+      </div>
+    </div>
+    
+    <div id="loadingSection" class="flex flex-col items-center justify-center py-8 hidden">
+      <div class="loading-spinner mb-4"></div>
+      <p class="text-lg">Generating ASCII art...</p>
+    </div>
+    
+    <div id="resultSection" class="hidden">
+      <h2 class="text-xl font-bold mb-4">ASCII Art Result</h2>
+      
+      <div class="ascii-container p-4 rounded-lg border mb-4">
+        <div id="asciiOutput" class="ascii-pre"></div>
+      </div>
+      
+      <div class="flex flex-wrap justify-center gap-4">
+        <button id="saveImageBtn" class="primary-btn rounded-lg px-4 py-2 font-medium">Save as Image</button>
+        <button id="copyTextBtn" class="border rounded-lg px-4 py-2 font-medium">Copy ASCII Text</button>
+        <button id="newImageBtn" class="border rounded-lg px-4 py-2 font-medium">Process New Image</button>
+      </div>
+      
+      <div id="saveInstructions" class="mt-4 text-center text-sm hidden">
+        <p>Right-click on the image below and select "Save image as..." to download it.</p>
+        <img id="downloadImage" src="" alt="ASCII Art" class="mt-2 mx-auto border rounded-lg">
+      </div>
+    </div>
+    
+    <div id="errorSection" class="hidden py-4 text-center">
+      <p id="errorMessage" class="error-msg"></p>
+      <button id="resetErrorBtn" class="mt-4 border rounded-lg px-4 py-2 font-medium">Try Again</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // DOM Elements
+      const imageInput = document.getElementById('imageInput');
+      const selectImageBtn = document.getElementById('selectImageBtn');
+      const dropZone = document.getElementById('dropZone');
+      const imagePreview = document.getElementById('imagePreview');
+      const previewSection = document.getElementById('previewSection');
+      const controlsSection = document.getElementById('controlsSection');
+      const styleSelect = document.getElementById('styleSelect');
+      const customCharsContainer = document.getElementById('customCharsContainer');
+      const customChars = document.getElementById('customChars');
+      const resolutionSlider = document.getElementById('resolutionSlider');
+      const resolutionValue = document.getElementById('resolutionValue');
+      const fontSizeSlider = document.getElementById('fontSizeSlider');
+      const fontSizeValue = document.getElementById('fontSizeValue');
+      const lineHeightSlider = document.getElementById('lineHeightSlider');
+      const lineHeightValue = document.getElementById('lineHeightValue');
+      const letterSpacingSlider = document.getElementById('letterSpacingSlider');
+      const letterSpacingValue = document.getElementById('letterSpacingValue');
+      const invertCheckbox = document.getElementById('invertCheckbox');
+      const bgColorPicker = document.getElementById('bgColorPicker');
+      const generateBtn = document.getElementById('generateBtn');
+      const loadingSection = document.getElementById('loadingSection');
+      const resultSection = document.getElementById('resultSection');
+      const asciiOutput = document.getElementById('asciiOutput');
+      const saveImageBtn = document.getElementById('saveImageBtn');
+      const copyTextBtn = document.getElementById('copyTextBtn');
+      const newImageBtn = document.getElementById('newImageBtn');
+      const downloadImage = document.getElementById('downloadImage');
+      const saveInstructions = document.getElementById('saveInstructions');
+      const errorSection = document.getElementById('errorSection');
+      const errorMessage = document.getElementById('errorMessage');
+      const resetErrorBtn = document.getElementById('resetErrorBtn');
+      
+      // Character sets for different styles
+      const characterSets = {
+        default: '@%#*+=-:. ',
+        simple: '█▓▒░ ',
+        blocks: '█▉▊▋▌▍▎▏ ',
+        circles: '●◉◍◎○◌ ',
+        rectangles: '■□▣▢▤▥▦▧▨▩ '
+      };
+      
+      // State
+      let currentImage = null;
+      
+      // Event Listeners
+      selectImageBtn.addEventListener('click', () => imageInput.click());
+      
+      imageInput.addEventListener('change', handleImageSelect);
+      
+      // Drag and drop functionality
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('bg-gray-500', 'bg-opacity-10');
+      });
+      
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('bg-gray-500', 'bg-opacity-10');
+      });
+      
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('bg-gray-500', 'bg-opacity-10');
+        
+        if (e.dataTransfer.files.length) {
+          const file = e.dataTransfer.files[0];
+          if (file.type.match('image.*')) {
+            handleFile(file);
+          } else {
+            showError('Please select an image file.');
+          }
+        }
+      });
+      
+      // Update Sliders and Settings
+      styleSelect.addEventListener('change', () => {
+        if (styleSelect.value === 'custom') {
+          customCharsContainer.classList.remove('hidden');
+        } else {
+          customCharsContainer.classList.add('hidden');
+        }
+        
+        // Auto-enable invert for rectangles style
+        if (styleSelect.value === 'rectangles') {
+          invertCheckbox.checked = true;
+        }
+      });
+      
+      // More event listeners for new controls
+      const contrastSlider = document.getElementById('contrastSlider');
+      const contrastValue = document.getElementById('contrastValue');
+      const saturationSlider = document.getElementById('saturationSlider');
+      const saturationValue = document.getElementById('saturationValue');
+      const colorModeSelect = document.getElementById('colorModeSelect');
+      const ditheringSelect = document.getElementById('ditheringSelect');
+      const ditheringContainer = document.getElementById('ditheringContainer');
+      
+      contrastSlider.addEventListener('input', () => {
+        contrastValue.textContent = contrastSlider.value;
+      });
+      
+      saturationSlider.addEventListener('input', () => {
+        saturationValue.textContent = saturationSlider.value;
+      });
+      
+      colorModeSelect.addEventListener('change', () => {
+        // Disable dithering when using color mode
+        if (colorModeSelect.value === 'color') {
+          ditheringSelect.value = 'none';
+          ditheringContainer.classList.add('opacity-50');
+          ditheringSelect.disabled = true;
+          
+          const warningDiv = document.getElementById('ditheringWarning') || document.createElement('div');
+          warningDiv.id = 'ditheringWarning';
+          warningDiv.className = 'text-xs text-yellow-600 dark:text-yellow-400 mt-1';
+          warningDiv.textContent = 'Dithering is not compatible with colorful ASCII mode';
+          if (!document.getElementById('ditheringWarning')) {
+            ditheringContainer.appendChild(warningDiv);
+          }
+        } else {
+          ditheringContainer.classList.remove('opacity-50');
+          ditheringSelect.disabled = false;
+          const warningDiv = document.getElementById('ditheringWarning');
+          if (warningDiv) {
+            warningDiv.remove();
+          }
+        }
+      });
+      
+      resolutionSlider.addEventListener('input', () => {
+        resolutionValue.textContent = resolutionSlider.value;
+      });
+      
+      fontSizeSlider.addEventListener('input', () => {
+        fontSizeValue.textContent = fontSizeSlider.value;
+      });
+      
+      lineHeightSlider.addEventListener('input', () => {
+        lineHeightValue.textContent = lineHeightSlider.value;
+      });
+      
+      letterSpacingSlider.addEventListener('input', () => {
+        letterSpacingValue.textContent = letterSpacingSlider.value;
+      });
+      
+      // Generate ASCII Art
+      generateBtn.addEventListener('click', generateAsciiArt);
+      
+      // Result Controls
+      saveImageBtn.addEventListener('click', saveAsImage);
+      copyTextBtn.addEventListener('click', copyAsciiText);
+      newImageBtn.addEventListener('click', resetToNewImage);
+      resetErrorBtn.addEventListener('click', resetError);
+      
+      // Helper Functions
+      function handleImageSelect(e) {
+        if (e.target.files.length) {
+          const file = e.target.files[0];
+          handleFile(file);
+        }
+      }
+      
+      function handleFile(file) {
+        if (!file.type.match('image.*')) {
+          showError('Please select an image file.');
+          return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          hideError();
+          
+          currentImage = new Image();
+          currentImage.onload = () => {
+            imagePreview.src = e.target.result;
+            previewSection.classList.remove('hidden');
+            controlsSection.classList.remove('hidden');
+          };
+          currentImage.onerror = () => {
+            showError('Failed to load image. Please try another file.');
+          };
+          currentImage.src = e.target.result;
+        };
+        
+        reader.onerror = () => {
+          showError('Error reading file. Please try again.');
+        };
+        
+        reader.readAsDataURL(file);
+      }
+      
+      function generateAsciiArt() {
+        if (!currentImage) {
+          showError('Please select an image first.');
+          return;
+        }
+        
+        // Show loading state
+        loadingSection.classList.remove('hidden');
+        resultSection.classList.add('hidden');
+        
+        // Use setTimeout to allow UI to update before processing
+        setTimeout(() => {
+          try {
+            const resolution = parseInt(resolutionSlider.value) / 100;
+            const style = styleSelect.value;
+            const invert = invertCheckbox.checked;
+            const colorMode = colorModeSelect.value;
+            
+            // Determine characters to use
+            let chars;
+            if (style === 'custom') {
+              chars = customChars.value || '@#$%&?!;:+=-_';
+            } else {
+              chars = characterSets[style] || characterSets.default;
+            }
+            
+            if (invert) {
+              chars = chars.split('').reverse().join('');
+            }
+            
+            // Process image
+            const result = convertToAscii(currentImage, chars, resolution);
+            
+            // Apply user styles
+            const fontSize = fontSizeSlider.value;
+            const lineHeight = lineHeightSlider.value;
+            const letterSpacing = letterSpacingSlider.value;
+            const bgColor = bgColorPicker.value;
+            
+            // Display result
+            asciiOutput.style.fontSize = `${fontSize}px`;
+            asciiOutput.style.lineHeight = lineHeight;
+            asciiOutput.style.letterSpacing = `${letterSpacing}em`;
+            document.querySelector('.ascii-container').style.backgroundColor = bgColor;
+            
+            // Content is set in convertToAscii for both color and greyscale modes
+            
+            // Hide loading and show result
+            loadingSection.classList.add('hidden');
+            resultSection.classList.remove('hidden');
+            
+            // Scroll to the result
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+          } catch (error) {
+            console.error('Error generating ASCII art:', error);
+            loadingSection.classList.add('hidden');
+            showError('Error generating ASCII art. Please try again with a different image or settings.');
+          }
+        }, 50);
+      }
+      
+      // HSL conversion utilities
+      function rgbToHsl(r, g, b) {
+        r /= 255;
+        g /= 255;
+        b /= 255;
+        
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+        
+        if (max === min) {
+          h = s = 0; // achromatic
+        } else {
+          const d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          
+          switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+          }
+          
+          h /= 6;
+        }
+        
+        return [h, s, l];
+      }
+      
+      function hslToRgb(h, s, l) {
+        let r, g, b;
+        
+        if (s === 0) {
+          r = g = b = l; // achromatic
+        } else {
+          const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+          };
+          
+          const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+          const p = 2 * l - q;
+          
+          r = hue2rgb(p, q, h + 1/3);
+          g = hue2rgb(p, q, h);
+          b = hue2rgb(p, q, h - 1/3);
+        }
+        
+        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+      }
+      
+      // Dithering algorithms
+      const ditherAlgorithms = {
+        // Floyd-Steinberg dithering
+        floydSteinberg: (imageData, width, height, threshold = 127) => {
+          const data = new Uint8ClampedArray(imageData.data);
+          const output = new Uint8ClampedArray(imageData.data);
+          
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const idx = (y * width + x) * 4;
+              const oldR = data[idx];
+              const oldG = data[idx + 1];
+              const oldB = data[idx + 2];
+              
+              // Convert to grayscale using standard luminance formula
+              const oldPixel = Math.round(0.299 * oldR + 0.587 * oldG + 0.114 * oldB);
+              
+              // Determine new pixel value (black or white)
+              const newPixel = oldPixel < threshold ? 0 : 255;
+              
+              // Calculate quantization error
+              const error = oldPixel - newPixel;
+              
+              // Set output pixel
+              output[idx] = output[idx + 1] = output[idx + 2] = newPixel;
+              output[idx + 3] = data[idx + 3]; // Keep alpha
+              
+              // Distribute error to neighboring pixels
+              if (x + 1 < width) {
+                data[(y * width + x + 1) * 4] += error * 7 / 16;
+                data[(y * width + x + 1) * 4 + 1] += error * 7 / 16;
+                data[(y * width + x + 1) * 4 + 2] += error * 7 / 16;
+              }
+              
+              if (y + 1 < height) {
+                if (x - 1 >= 0) {
+                  data[((y + 1) * width + x - 1) * 4] += error * 3 / 16;
+                  data[((y + 1) * width + x - 1) * 4 + 1] += error * 3 / 16;
+                  data[((y + 1) * width + x - 1) * 4 + 2] += error * 3 / 16;
+                }
+                
+                data[((y + 1) * width + x) * 4] += error * 5 / 16;
+                data[((y + 1) * width + x) * 4 + 1] += error * 5 / 16;
+                data[((y + 1) * width + x) * 4 + 2] += error * 5 / 16;
+                
+                if (x + 1 < width) {
+                  data[((y + 1) * width + x + 1) * 4] += error * 1 / 16;
+                  data[((y + 1) * width + x + 1) * 4 + 1] += error * 1 / 16;
+                  data[((y + 1) * width + x + 1) * 4 + 2] += error * 1 / 16;
+                }
+              }
+            }
+          }
+          
+          return output;
+        },
+        
+        // Bayer dithering with 8x8 matrix
+        bayer: (imageData, width, height) => {
+          const bayerMatrix8x8 = [
+            [0, 48, 12, 60, 3, 51, 15, 63],
+            [32, 16, 44, 28, 35, 19, 47, 31],
+            [8, 56, 4, 52, 11, 59, 7, 55],
+            [40, 24, 36, 20, 43, 27, 39, 23],
+            [2, 50, 14, 62, 1, 49, 13, 61],
+            [34, 18, 46, 30, 33, 17, 45, 29],
+            [10, 58, 6, 54, 9, 57, 5, 53],
+            [42, 26, 38, 22, 41, 25, 37, 21]
+          ];
+          
+          // Create a normalized matrix (0-1 range)
+          const normalizedMatrix = bayerMatrix8x8.map(row => 
+            row.map(val => val / 64)
+          );
+          
+          const data = imageData.data;
+          const output = new Uint8ClampedArray(data);
+          
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const idx = (y * width + x) * 4;
+              const oldR = data[idx];
+              const oldG = data[idx + 1];
+              const oldB = data[idx + 2];
+              
+              // Convert to grayscale
+              const oldPixel = Math.round(0.299 * oldR + 0.587 * oldG + 0.114 * oldB);
+              
+              // Get threshold from Bayer matrix
+              const threshold = normalizedMatrix[y % 8][x % 8] * 255;
+              
+              // Apply threshold
+              const newPixel = oldPixel < threshold ? 0 : 255;
+              
+              // Set output pixel
+              output[idx] = output[idx + 1] = output[idx + 2] = newPixel;
+            }
+          }
+          
+          return output;
+        },
+        
+        // Minimum Average Error dithering
+        minAvgErr: (imageData, width, height) => {
+          const data = new Uint8ClampedArray(imageData.data);
+          const output = new Uint8ClampedArray(imageData.data);
+          const errors = new Int16Array(width);
+          
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const idx = (y * width + x) * 4;
+              
+              // Add accumulated error
+              let oldPixel = data[idx] + errors[x];
+              oldPixel = Math.max(0, Math.min(255, oldPixel));
+              
+              // Determine new pixel value
+              const newPixel = oldPixel < 128 ? 0 : 255;
+              
+              // Set output pixel
+              output[idx] = output[idx + 1] = output[idx + 2] = newPixel;
+              
+              // Calculate error
+              const error = oldPixel - newPixel;
+              
+              // Distribute error
+              if (x + 1 < width) {
+                errors[x + 1] += error;
+              }
+            }
+          }
+          
+          return output;
+        },
+        
+        // Burkes dithering
+        burkes: (imageData, width, height) => {
+          const data = new Uint8ClampedArray(imageData.data);
+          const output = new Uint8ClampedArray(imageData.data);
+          
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const idx = (y * width + x) * 4;
+              const oldR = data[idx];
+              const oldG = data[idx + 1];
+              const oldB = data[idx + 2];
+              
+              // Convert to grayscale
+              const oldPixel = Math.round(0.299 * oldR + 0.587 * oldG + 0.114 * oldB);
+              
+              // Determine new pixel value
+              const newPixel = oldPixel < 128 ? 0 : 255;
+              
+              // Set output pixel
+              output[idx] = output[idx + 1] = output[idx + 2] = newPixel;
+              output[idx + 3] = data[idx + 3]; // Keep alpha
+              
+              // Calculate error
+              const error = oldPixel - newPixel;
+              
+              // Distribute error - Burkes pattern
+              if (x + 1 < width) {
+                data[(y * width + x + 1) * 4] += error * 8 / 32;
+                data[(y * width + x + 1) * 4 + 1] += error * 8 / 32;
+                data[(y * width + x + 1) * 4 + 2] += error * 8 / 32;
+              }
+              if (x + 2 < width) {
+                data[(y * width + x + 2) * 4] += error * 4 / 32;
+                data[(y * width + x + 2) * 4 + 1] += error * 4 / 32;
+                data[(y * width + x + 2) * 4 + 2] += error * 4 / 32;
+              }
+              
+              if (y + 1 < height) {
+                if (x - 2 >= 0) {
+                  data[((y + 1) * width + x - 2) * 4] += error * 2 / 32;
+                  data[((y + 1) * width + x - 2) * 4 + 1] += error * 2 / 32;
+                  data[((y + 1) * width + x - 2) * 4 + 2] += error * 2 / 32;
+                }
+                if (x - 1 >= 0) {
+                  data[((y + 1) * width + x - 1) * 4] += error * 4 / 32;
+                  data[((y + 1) * width + x - 1) * 4 + 1] += error * 4 / 32;
+                  data[((y + 1) * width + x - 1) * 4 + 2] += error * 4 / 32;
+                }
+                
+                data[((y + 1) * width + x) * 4] += error * 8 / 32;
+                data[((y + 1) * width + x) * 4 + 1] += error * 8 / 32;
+                data[((y + 1) * width + x) * 4 + 2] += error * 8 / 32;
+                
+                if (x + 1 < width) {
+                  data[((y + 1) * width + x + 1) * 4] += error * 4 / 32;
+                  data[((y + 1) * width + x + 1) * 4 + 1] += error * 4 / 32;
+                  data[((y + 1) * width + x + 1) * 4 + 2] += error * 4 / 32;
+                }
+                if (x + 2 < width) {
+                  data[((y + 1) * width + x + 2) * 4] += error * 2 / 32;
+                  data[((y + 1) * width + x + 2) * 4 + 1] += error * 2 / 32;
+                  data[((y + 1) * width + x + 2) * 4 + 2] += error * 2 / 32;
+                }
+              }
+            }
+          }
+          
+          return output;
+        },
+        
+        // Sierra dithering
+        sierra: (imageData, width, height) => {
+          const data = new Uint8ClampedArray(imageData.data);
+          const output = new Uint8ClampedArray(imageData.data);
+          
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const idx = (y * width + x) * 4;
+              const oldR = data[idx];
+              const oldG = data[idx + 1];
+              const oldB = data[idx + 2];
+              
+              // Convert to grayscale
+              const oldPixel = Math.round(0.299 * oldR + 0.587 * oldG + 0.114 * oldB);
+              
+              // Determine new pixel value
+              const newPixel = oldPixel < 128 ? 0 : 255;
+              
+              // Set output pixel
+              output[idx] = output[idx + 1] = output[idx + 2] = newPixel;
+              output[idx + 3] = data[idx + 3]; // Keep alpha
+              
+              // Calculate error
+              const error = oldPixel - newPixel;
+              
+              // Distribute error - Sierra pattern
+              if (x + 1 < width) {
+                data[(y * width + x + 1) * 4] += error * 5 / 32;
+                data[(y * width + x + 1) * 4 + 1] += error * 5 / 32;
+                data[(y * width + x + 1) * 4 + 2] += error * 5 / 32;
+              }
+              if (x + 2 < width) {
+                data[(y * width + x + 2) * 4] += error * 3 / 32;
+                data[(y * width + x + 2) * 4 + 1] += error * 3 / 32;
+                data[(y * width + x + 2) * 4 + 2] += error * 3 / 32;
+              }
+              
+              if (y + 1 < height) {
+                if (x - 2 >= 0) {
+                  data[((y + 1) * width + x - 2) * 4] += error * 2 / 32;
+                  data[((y + 1) * width + x - 2) * 4 + 1] += error * 2 / 32;
+                  data[((y + 1) * width + x - 2) * 4 + 2] += error * 2 / 32;
+                }
+                if (x - 1 >= 0) {
+                  data[((y + 1) * width + x - 1) * 4] += error * 4 / 32;
+                  data[((y + 1) * width + x - 1) * 4 + 1] += error * 4 / 32;
+                  data[((y + 1) * width + x - 1) * 4 + 2] += error * 4 / 32;
+                }
+                
+                data[((y + 1) * width + x) * 4] += error * 5 / 32;
+                data[((y + 1) * width + x) * 4 + 1] += error * 5 / 32;
+                data[((y + 1) * width + x) * 4 + 2] += error * 5 / 32;
+                
+                if (x + 1 < width) {
+                  data[((y + 1) * width + x + 1) * 4] += error * 4 / 32;
+                  data[((y + 1) * width + x + 1) * 4 + 1] += error * 4 / 32;
+                  data[((y + 1) * width + x + 1) * 4 + 2] += error * 4 / 32;
+                }
+                if (x + 2 < width) {
+                  data[((y + 1) * width + x + 2) * 4] += error * 2 / 32;
+                  data[((y + 1) * width + x + 2) * 4 + 1] += error * 2 / 32;
+                  data[((y + 1) * width + x + 2) * 4 + 2] += error * 2 / 32;
+                }
+              }
+              
+              if (y + 2 < height) {
+                if (x - 1 >= 0) {
+                  data[((y + 2) * width + x - 1) * 4] += error * 2 / 32;
+                  data[((y + 2) * width + x - 1) * 4 + 1] += error * 2 / 32;
+                  data[((y + 2) * width + x - 1) * 4 + 2] += error * 2 / 32;
+                }
+                
+                data[((y + 2) * width + x) * 4] += error * 3 / 32;
+                data[((y + 2) * width + x) * 4 + 1] += error * 3 / 32;
+                data[((y + 2) * width + x) * 4 + 2] += error * 3 / 32;
+                
+                if (x + 1 < width) {
+                  data[((y + 2) * width + x + 1) * 4] += error * 2 / 32;
+                  data[((y + 2) * width + x + 1) * 4 + 1] += error * 2 / 32;
+                  data[((y + 2) * width + x + 1) * 4 + 2] += error * 2 / 32;
+                }
+              }
+            }
+          }
+          
+          return output;
+        },
+        
+        // Stucki dithering
+        stucki: (imageData, width, height) => {
+          const data = new Uint8ClampedArray(imageData.data);
+          const output = new Uint8ClampedArray(imageData.data);
+          
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const idx = (y * width + x) * 4;
+              const oldR = data[idx];
+              const oldG = data[idx + 1];
+              const oldB = data[idx + 2];
+              
+              // Convert to grayscale
+              const oldPixel = Math.round(0.299 * oldR + 0.587 * oldG + 0.114 * oldB);
+              
+              // Determine new pixel value
+              const newPixel = oldPixel < 128 ? 0 : 255;
+              
+              // Set output pixel
+              output[idx] = output[idx + 1] = output[idx + 2] = newPixel;
+              output[idx + 3] = data[idx + 3]; // Keep alpha
+              
+              // Calculate error
+              const error = oldPixel - newPixel;
+              
+              // Distribute error - Stucki pattern
+              if (x + 1 < width) {
+                data[(y * width + x + 1) * 4] += error * 8 / 42;
+                data[(y * width + x + 1) * 4 + 1] += error * 8 / 42;
+                data[(y * width + x + 1) * 4 + 2] += error * 8 / 42;
+              }
+              if (x + 2 < width) {
+                data[(y * width + x + 2) * 4] += error * 4 / 42;
+                data[(y * width + x + 2) * 4 + 1] += error * 4 / 42;
+                data[(y * width + x + 2) * 4 + 2] += error * 4 / 42;
+              }
+              
+              if (y + 1 < height) {
+                if (x - 2 >= 0) {
+                  data[((y + 1) * width + x - 2) * 4] += error * 2 / 42;
+                  data[((y + 1) * width + x - 2) * 4 + 1] += error * 2 / 42;
+                  data[((y + 1) * width + x - 2) * 4 + 2] += error * 2 / 42;
+                }
+                if (x - 1 >= 0) {
+                  data[((y + 1) * width + x - 1) * 4] += error * 4 / 42;
+                  data[((y + 1) * width + x - 1) * 4 + 1] += error * 4 / 42;
+                  data[((y + 1) * width + x - 1) * 4 + 2] += error * 4 / 42;
+                }
+                
+                data[((y + 1) * width + x) * 4] += error * 8 / 42;
+                data[((y + 1) * width + x) * 4 + 1] += error * 8 / 42;
+                data[((y + 1) * width + x) * 4 + 2] += error * 8 / 42;
+                
+                if (x + 1 < width) {
+                  data[((y + 1) * width + x + 1) * 4] += error * 4 / 42;
+                  data[((y + 1) * width + x + 1) * 4 + 1] += error * 4 / 42;
+                  data[((y + 1) * width + x + 1) * 4 + 2] += error * 4 / 42;
+                }
+                if (x + 2 < width) {
+                  data[((y + 1) * width + x + 2) * 4] += error * 2 / 42;
+                  data[((y + 1) * width + x + 2) * 4 + 1] += error * 2 / 42;
+                  data[((y + 1) * width + x + 2) * 4 + 2] += error * 2 / 42;
+                }
+              }
+              
+              if (y + 2 < height) {
+                if (x - 2 >= 0) {
+                  data[((y + 2) * width + x - 2) * 4] += error * 1 / 42;
+                  data[((y + 2) * width + x - 2) * 4 + 1] += error * 1 / 42;
+                  data[((y + 2) * width + x - 2) * 4 + 2] += error * 1 / 42;
+                }
+                if (x - 1 >= 0) {
+                  data[((y + 2) * width + x - 1) * 4] += error * 2 / 42;
+                  data[((y + 2) * width + x - 1) * 4 + 1] += error * 2 / 42;
+                  data[((y + 2) * width + x - 1) * 4 + 2] += error * 2 / 42;
+                }
+                
+                data[((y + 2) * width + x) * 4] += error * 4 / 42;
+                data[((y + 2) * width + x) * 4 + 1] += error * 4 / 42;
+                data[((y + 2) * width + x) * 4 + 2] += error * 4 / 42;
+                
+                if (x + 1 < width) {
+                  data[((y + 2) * width + x + 1) * 4] += error * 2 / 42;
+                  data[((y + 2) * width + x + 1) * 4 + 1] += error * 2 / 42;
+                  data[((y + 2) * width + x + 1) * 4 + 2] += error * 2 / 42;
+                }
+                if (x + 2 < width) {
+                  data[((y + 2) * width + x + 2) * 4] += error * 1 / 42;
+                  data[((y + 2) * width + x + 2) * 4 + 1] += error * 1 / 42;
+                  data[((y + 2) * width + x + 2) * 4 + 2] += error * 1 / 42;
+                }
+              }
+            }
+          }
+          
+          return output;
+        },
+        
+        // Atkinson dithering
+        atkinson: (imageData, width, height) => {
+          const data = new Uint8ClampedArray(imageData.data);
+          const output = new Uint8ClampedArray(imageData.data);
+          
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const idx = (y * width + x) * 4;
+              const oldR = data[idx];
+              const oldG = data[idx + 1];
+              const oldB = data[idx + 2];
+              
+              // Convert to grayscale
+              const oldPixel = Math.round(0.299 * oldR + 0.587 * oldG + 0.114 * oldB);
+              
+              // Determine new pixel value
+              const newPixel = oldPixel < 128 ? 0 : 255;
+              
+              // Set output pixel
+              output[idx] = output[idx + 1] = output[idx + 2] = newPixel;
+              output[idx + 3] = data[idx + 3]; // Keep alpha
+              
+              // Calculate error and distribute (1/8 to each of 6 neighboring pixels)
+              const error = Math.floor((oldPixel - newPixel) / 8);
+              
+              if (x + 1 < width) {
+                data[(y * width + x + 1) * 4] += error;
+                data[(y * width + x + 1) * 4 + 1] += error;
+                data[(y * width + x + 1) * 4 + 2] += error;
+              }
+              if (x + 2 < width) {
+                data[(y * width + x + 2) * 4] += error;
+                data[(y * width + x + 2) * 4 + 1] += error;
+                data[(y * width + x + 2) * 4 + 2] += error;
+              }
+              
+              if (y + 1 < height) {
+                if (x - 1 >= 0) {
+                  data[((y + 1) * width + x - 1) * 4] += error;
+                  data[((y + 1) * width + x - 1) * 4 + 1] += error;
+                  data[((y + 1) * width + x - 1) * 4 + 2] += error;
+                }
+                
+                data[((y + 1) * width + x) * 4] += error;
+                data[((y + 1) * width + x) * 4 + 1] += error;
+                data[((y + 1) * width + x) * 4 + 2] += error;
+                
+                if (x + 1 < width) {
+                  data[((y + 1) * width + x + 1) * 4] += error;
+                  data[((y + 1) * width + x + 1) * 4 + 1] += error;
+                  data[((y + 1) * width + x + 1) * 4 + 2] += error;
+                }
+              }
+              
+              if (y + 2 < height) {
+                data[((y + 2) * width + x) * 4] += error;
+                data[((y + 2) * width + x) * 4 + 1] += error;
+                data[((y + 2) * width + x) * 4 + 2] += error;
+              }
+            }
+          }
+          
+          return output;
+        }
+      };
+      
+      function applyContrast(data, width, height, contrast) {
+        const output = new Uint8ClampedArray(data.length);
+        
+        for (let i = 0; i < data.length; i += 4) {
+          // Apply contrast to RGB channels
+          for (let c = 0; c < 3; c++) {
+            const value = data[i + c];
+            const newValue = 128 + (value - 128) * contrast;
+            output[i + c] = Math.max(0, Math.min(255, newValue));
+          }
+          // Keep alpha channel
+          output[i + 3] = data[i + 3];
+        }
+        
+        return output;
+      }
+      
+      function applySaturation(data, width, height, saturation) {
+        const output = new Uint8ClampedArray(data.length);
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          
+          // Convert to HSL
+          const [h, s, l] = rgbToHsl(r, g, b);
+          
+          // Adjust saturation
+          const newS = Math.max(0, Math.min(1, s * saturation));
+          
+          // Convert back to RGB
+          const [newR, newG, newB] = hslToRgb(h, newS, l);
+          
+          // Set output
+          output[i] = newR;
+          output[i + 1] = newG;
+          output[i + 2] = newB;
+          output[i + 3] = data[i + 3]; // Keep alpha
+        }
+        
+        return output;
+      }
+      
+      function convertToAscii(image, chars, resolution) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        // Calculate dimensions based on resolution
+        let width = Math.floor(image.width * resolution);
+        let height = Math.floor(image.height * resolution);
+        
+        // Ensure minimum dimensions
+        width = Math.max(width, 10);
+        height = Math.max(height, 10);
+        
+        // Limit maximum dimensions to prevent browser freezing
+        const maxDimension = 300;
+        if (width > maxDimension) {
+          const ratio = maxDimension / width;
+          width = maxDimension;
+          height = Math.floor(height * ratio);
+        }
+        
+        if (height > maxDimension) {
+          const ratio = maxDimension / height;
+          height = maxDimension;
+          width = Math.floor(width * ratio);
+        }
+        
+        // Set canvas dimensions
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw image to canvas
+        ctx.drawImage(image, 0, 0, width, height);
+        
+        // Get image data
+        let imageData = ctx.getImageData(0, 0, width, height);
+        let data = imageData.data;
+        
+        // Apply image processing
+        const contrast = parseFloat(contrastSlider.value);
+        const saturation = parseFloat(saturationSlider.value);
+        const colorMode = colorModeSelect.value;
+        const ditheringMode = ditheringSelect.value;
+        
+        // Apply contrast adjustment
+        if (contrast !== 1.0) {
+          data = applyContrast(data, width, height, contrast);
+        }
+        
+        // Apply saturation adjustment
+        if (saturation !== 1.0) {
+          data = applySaturation(data, width, height, saturation);
+        }
+        
+        // Apply dithering if needed
+        if (ditheringMode !== 'none' && colorMode !== 'color') {
+          const ditheredData = ditherAlgorithms[ditheringMode](
+            new ImageData(data, width, height),
+            width,
+            height
+          );
+          data = ditheredData;
+        }
+        
+        // Create a new ImageData with processed data
+        const processedImageData = new ImageData(
+          new Uint8ClampedArray(data),
+          width,
+          height
+        );
+        
+        // Handle color or greyscale ASCII output
+        let asciiText = '';
+        const colorPixels = [];
+        
+        if (colorMode === 'color') {
+          // Colored ASCII art
+          for (let y = 0; y < height; y++) {
+            const row = [];
+            for (let x = 0; x < width; x++) {
+              const offset = (y * width + x) * 4;
+              const r = data[offset];
+              const g = data[offset + 1];
+              const b = data[offset + 2];
+              
+              // Calculate brightness for character selection
+              const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+              
+              // Map brightness to character
+              const charIndex = Math.floor(brightness * (chars.length - 1));
+              const char = chars[charIndex];
+              
+              // Store character and its color
+              row.push({
+                char,
+                color: `rgb(${r}, ${g}, ${b})`
+              });
+              
+              asciiText += char;
+            }
+            colorPixels.push(row);
+            asciiText += '\n';
+          }
+          
+          // Prepare colored HTML output
+          let coloredHtml = '';
+          for (const row of colorPixels) {
+            for (const pixel of row) {
+              coloredHtml += `<span style="color: ${pixel.color}">${pixel.char}</span>`;
+            }
+            coloredHtml += '<br>';
+          }
+          
+          // Set HTML content
+          asciiOutput.innerHTML = coloredHtml;
+        } else {
+          // Traditional greyscale ASCII art
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const offset = (y * width + x) * 4;
+              const r = data[offset];
+              const g = data[offset + 1];
+              const b = data[offset + 2];
+              
+              // Calculate brightness
+              const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+              
+              // Map brightness to character
+              const charIndex = Math.floor(brightness * (chars.length - 1));
+              asciiText += chars[charIndex];
+            }
+            asciiText += '\n';
+          }
+          
+          // Set text content
+          asciiOutput.textContent = asciiText;
+        }
+        
+        return { 
+          asciiText, 
+          width, 
+          height, 
+          isColored: colorMode === 'color',
+          colorPixels 
+        };
+      }
+      
+      function saveAsImage() {
+        try {
+          const colorMode = colorModeSelect.value;
+          const fontSize = parseInt(fontSizeSlider.value);
+          const lineHeight = parseFloat(lineHeightSlider.value);
+          const letterSpacing = parseFloat(letterSpacingSlider.value);
+          const bgColor = bgColorPicker.value;
+          
+          // Create a canvas with proper dimensions
+          let canvas, ctx;
+          
+          if (colorMode === 'color') {
+            // For colored ASCII, we need to render the HTML content
+            const html = asciiOutput.innerHTML;
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = html;
+            tempContainer.style.fontFamily = 'monospace';
+            tempContainer.style.fontSize = `${fontSize}px`;
+            tempContainer.style.lineHeight = lineHeight;
+            tempContainer.style.letterSpacing = `${letterSpacing}em`;
+            tempContainer.style.backgroundColor = bgColor;
+            tempContainer.style.padding = '20px';
+            tempContainer.style.whiteSpace = 'pre';
+            
+            // Use html2canvas external library
+            const width = asciiOutput.offsetWidth;
+            const height = asciiOutput.offsetHeight;
+            
+            canvas = document.createElement('canvas');
+            ctx = canvas.getContext('2d');
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Fill background
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, width, height);
+            
+            // Render HTML content
+            const lines = asciiOutput.innerHTML.split('<br>');
+            let y = 0;
+            
+            // Process each row
+            for (let rowIndex = 0; rowIndex < lines.length; rowIndex++) {
+              const line = lines[rowIndex];
+              
+              // Create a temporary div to parse spans
+              const parser = document.createElement('div');
+              parser.innerHTML = line;
+              
+              // Extract spans with colors
+              const spans = parser.querySelectorAll('span');
+              let x = 0;
+              
+              // Draw each colored character
+              for (let i = 0; i < spans.length; i++) {
+                const span = spans[i];
+                const char = span.textContent;
+                const color = span.style.color;
+                
+                ctx.font = `${fontSize}px monospace`;
+                ctx.fillStyle = color;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                
+                ctx.fillText(char, x, y);
+                x += fontSize * 0.6 * (1 + letterSpacing);
+              }
+              
+              y += fontSize * lineHeight;
+            }
+          } else {
+            // For greyscale ASCII, we can render text directly
+            const ascii = asciiOutput.textContent;
+            const lines = ascii.split('\n');
+            const maxLineLength = Math.max(...lines.map(line => line.length));
+            
+            canvas = document.createElement('canvas');
+            ctx = canvas.getContext('2d');
+            
+            // Set canvas dimensions
+            const charWidth = fontSize * 0.6 * (1 + letterSpacing);
+            const charHeight = fontSize * lineHeight;
+            canvas.width = maxLineLength * charWidth;
+            canvas.height = lines.length * charHeight;
+            
+            // Fill background
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Set text properties
+            ctx.font = `${fontSize}px monospace`;
+            ctx.fillStyle = '#000000';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            
+            // Draw text
+            lines.forEach((line, lineIndex) => {
+              for (let i = 0; i < line.length; i++) {
+                ctx.fillText(
+                  line[i],
+                  i * charWidth,
+                  lineIndex * charHeight
+                );
+              }
+            });
+          }
+          
+          // Convert to data URL and display
+          const dataUrl = canvas.toDataURL('image/png');
+          downloadImage.src = dataUrl;
+          downloadImage.style.display = 'block';
+          saveInstructions.classList.remove('hidden');
+          
+          // Scroll to the save instructions
+          saveInstructions.scrollIntoView({ behavior: 'smooth' });
+        } catch (error) {
+          console.error('Error saving image:', error);
+          showError('Error saving image. Please try again.');
+        }
+      }
+      
+      function copyAsciiText() {
+        try {
+          const asciiText = asciiOutput.textContent;
+          navigator.clipboard.writeText(asciiText)
+            .then(() => {
+              const originalText = copyTextBtn.textContent;
+              copyTextBtn.textContent = 'Copied!';
+              setTimeout(() => {
+                copyTextBtn.textContent = originalText;
+              }, 2000);
+            })
+            .catch(err => {
+              console.error('Failed to copy text:', err);
+              showError('Failed to copy text. Please try again.');
+            });
+        } catch (error) {
+          console.error('Error copying text:', error);
+          showError('Error copying text. Please try again.');
+        }
+      }
+      
+      function resetToNewImage() {
+        currentImage = null;
+        imageInput.value = '';
+        previewSection.classList.add('hidden');
+        controlsSection.classList.add('hidden');
+        resultSection.classList.add('hidden');
+        saveInstructions.classList.add('hidden');
+        downloadImage.style.display = 'none';
+        hideError();
+        
+        // Reset sliders to default values
+        resolutionSlider.value = 100;
+        resolutionValue.textContent = '100';
+        fontSizeSlider.value = 10;
+        fontSizeValue.textContent = '10';
+        lineHeightSlider.value = 1.0;
+        lineHeightValue.textContent = '1.0';
+        letterSpacingSlider.value = 0.5;
+        letterSpacingValue.textContent = '0.5';
+        invertCheckbox.checked = false;
+        bgColorPicker.value = '#ffffff';
+        styleSelect.value = 'default';
+        customCharsContainer.classList.add('hidden');
+        
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      
+      function showError(message) {
+        errorMessage.textContent = message;
+        errorSection.classList.remove('hidden');
+        loadingSection.classList.add('hidden');
+      }
+      
+      function hideError() {
+        errorSection.classList.add('hidden');
+      }
+      
+      function resetError() {
+        hideError();
+      }
+    });
+  </script>
+</body>
+</html>
