@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Enhanced ASCII Art Generator</title>
+  <title id="pageTitle">Enhanced ASCII Art Generator</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
@@ -428,10 +428,120 @@
         margin-bottom: 10px;
       }
     }
+    
+    /* Toy Mode Optimizations */
+    .toy-char {
+      position: absolute;
+      transform-origin: center;
+      will-change: transform, color;
+    }
+
+    .toy-char-static {
+      position: absolute;
+      transform-origin: center;
+    }
+
+    #toyCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .toy-stats {
+      position: absolute;
+      bottom: 5px;
+      left: 5px;
+      font-size: 10px;
+      color: rgba(100, 100, 100, 0.7);
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .toy-cursor {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid var(--primary-color);
+      box-shadow: 0 0 10px rgba(93, 92, 222, 0.5);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 5;
+      opacity: 0.5;
+      transition: width 0.3s, height 0.3s, opacity 0.3s;
+    }
+
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid var(--primary-color);
+      transform: translate(-50%, -50%) scale(0);
+      animation: ripple-effect 1s ease-out forwards;
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    @keyframes ripple-effect {
+      0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0.8;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0;
+      }
+    }
+
+    .toy-quality-indicator {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      font-size: 10px;
+      font-weight: bold;
+      background-color: rgba(255, 255, 255, 0.7);
+      color: #333;
+      padding: 3px 6px;
+      border-radius: 3px;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .dark-mode .toy-quality-indicator {
+      background-color: rgba(40, 40, 40, 0.7);
+      color: #eee;
+    }
+
+    /* Performance mode indicators */
+    .quality-high {
+      color: #4CAF50;
+    }
+    .quality-balanced {
+      color: #2196F3;
+    }
+    .quality-performance {
+      color: #FF9800;
+    }
+    .quality-extreme {
+      color: #F44336;
+    }
+
+    /* Canvas-based toy mode */
+    .interactive-ascii-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      cursor: none;
+    }
   </style>
 </head>
 <body class="p-4 min-h-screen light-mode">
-  <!-- Theme/Mode Switches -->
+  <!-- Theme/Mode/Language Switches -->
   <div class="flex gap-3 absolute top-4 right-4 z-50 theme-switches">
     <div class="bg-white dark:bg-gray-800 p-2 rounded-lg shadow flex items-center">
       <span class="mr-2 text-sm">🌙</span>
@@ -443,22 +553,29 @@
     </div>
     
     <div class="bg-white dark:bg-gray-800 p-2 rounded-lg shadow flex items-center desktop-only">
-      <span class="mr-2 text-sm">Simple</span>
+      <span class="mr-2 text-sm" data-i18n="simple">Simple</span>
       <label class="switch">
         <input type="checkbox" id="simpleModelToggle">
         <span class="slider-switch"></span>
       </label>
-      <span class="ml-2 text-sm">Advanced</span>
+      <span class="ml-2 text-sm" data-i18n="advanced">Advanced</span>
+    </div>
+    
+    <div class="bg-white dark:bg-gray-800 p-2 rounded-lg shadow flex items-center">
+      <select id="languageSelect" class="bg-transparent border-none text-sm focus:outline-none cursor-pointer">
+        <option value="en">English</option>
+        <option value="zh">中文</option>
+      </select>
     </div>
   </div>
 
   <div class="max-w-4xl mx-auto theme-card rounded-xl p-6 shadow-md border mt-12">
-    <h1 class="text-2xl font-bold text-center mb-6">Enhanced ASCII Art Generator</h1>
+    <h1 class="text-2xl font-bold text-center mb-6" data-i18n="appTitle">Enhanced ASCII Art Generator</h1>
     
     <!-- Mobile mode notice -->
     <div class="mobile-mode-notice">
-      <p class="font-medium">You're using the simplified mobile view.</p>
-      <p class="text-sm mt-1">For full functionality including video processing and advanced settings, please use a wider window or desktop device.</p>
+      <p class="font-medium" data-i18n="mobileNotice">You're using the simplified mobile view.</p>
+      <p class="text-sm mt-1" data-i18n="mobileDetails">For full functionality including video processing and advanced settings, please use a wider window or desktop device.</p>
     </div>
     
     <div class="mb-6">
@@ -466,18 +583,18 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
-        <p class="text-sm text-gray-500 mb-2">Drag and drop an image<span class="desktop-only">/video</span> or click to select</p>
+        <p class="text-sm text-gray-500 mb-2" data-i18n="dropZoneText">Drag and drop an image<span class="desktop-only">/video</span> or click to select</p>
         <div class="flex gap-3">
           <input type="file" id="imageInput" accept="image/*" class="hidden">
           <input type="file" id="videoInput" accept="video/*,.gif" class="hidden">
-          <button id="selectImageBtn" class="primary-btn rounded px-4 py-2 text-base">Select Image</button>
-          <button id="selectVideoBtn" class="primary-btn rounded px-4 py-2 text-base desktop-only">Select Video/GIF</button>
+          <button id="selectImageBtn" class="primary-btn rounded px-4 py-2 text-base" data-i18n="selectImage">Select Image</button>
+          <button id="selectVideoBtn" class="primary-btn rounded px-4 py-2 text-base desktop-only" data-i18n="selectVideo">Select Video/GIF</button>
         </div>
       </div>
     </div>
     
     <div id="previewSection" class="mb-6 hidden">
-      <h2 class="text-xl font-bold mb-2">Media Preview</h2>
+      <h2 class="text-xl font-bold mb-2" data-i18n="mediaPreview">Media Preview</h2>
       <div class="flex justify-center">
         <img id="imagePreview" src="" alt="Preview" class="rounded-lg hidden">
         <video id="videoPreview" class="rounded-lg hidden desktop-only" loop controls muted></video>
@@ -489,22 +606,22 @@
     
     <div id="controlsSection" class="mb-6 hidden">
       <div id="simpleControls" class="hidden">
-        <h2 class="text-xl font-bold mb-4">Simple Mode</h2>
+        <h2 class="text-xl font-bold mb-4" data-i18n="simpleMode">Simple Mode</h2>
         <div class="grid grid-cols-1 gap-4 mb-4">
           <div>
-            <label for="brightnessSliderSimple" class="block mb-2 font-medium">Brightness: <span id="brightnessValueSimple">1.0</span></label>
+            <label for="brightnessSliderSimple" class="block mb-2 font-medium" data-i18n="brightness">Brightness: <span id="brightnessValueSimple">1.0</span></label>
             <input type="range" id="brightnessSliderSimple" class="slider w-full" min="0.1" max="3" step="0.1" value="1.0">
           </div>
           <div>
-            <label for="contrastSliderSimple" class="block mb-2 font-medium">Contrast: <span id="contrastValueSimple">1.0</span></label>
+            <label for="contrastSliderSimple" class="block mb-2 font-medium" data-i18n="contrast">Contrast: <span id="contrastValueSimple">1.0</span></label>
             <input type="range" id="contrastSliderSimple" class="slider w-full" min="0.1" max="3" step="0.1" value="1.0">
           </div>
           <div>
-            <label for="letterSpacingSliderSimple" class="block mb-2 font-medium">Letter Spacing: <span id="letterSpacingValueSimple">0.5</span>em</label>
+            <label for="letterSpacingSliderSimple" class="block mb-2 font-medium" data-i18n="letterSpacing">Letter Spacing: <span id="letterSpacingValueSimple">0.5</span>em</label>
             <input type="range" id="letterSpacingSliderSimple" class="slider w-full" min="0" max="1" step="0.05" value="0.5">
           </div>
           <div>
-            <label for="lineHeightSliderSimple" class="block mb-2 font-medium">Line Height: <span id="lineHeightValueSimple">1.0</span></label>
+            <label for="lineHeightSliderSimple" class="block mb-2 font-medium" data-i18n="lineHeight">Line Height: <span id="lineHeightValueSimple">1.0</span></label>
             <input type="range" id="lineHeightSliderSimple" class="slider w-full" min="0.5" max="2" step="0.1" value="1.0">
           </div>
         </div>
@@ -512,7 +629,7 @@
       
       <div id="advancedControls">
         <div class="flex justify-between items-center mb-4 flex-wrap">
-          <h2 class="text-xl font-bold mb-2 md:mb-0">ASCII Art Settings</h2>
+          <h2 class="text-xl font-bold mb-2 md:mb-0" data-i18n="asciiArtSettings">ASCII Art Settings</h2>
           <div class="flex gap-2 flex-wrap">
             <div class="relative">
               <select id="presetSelect" class="px-3 py-2 border rounded-lg text-base">
@@ -520,20 +637,20 @@
                 <!-- Presets will be populated here -->
               </select>
             </div>
-            <button id="savePresetBtn" class="border rounded-lg px-3 py-2 text-base">Save as Preset</button>
-            <button id="exportPresetBtn" class="border rounded-lg px-3 py-2 text-base">Export Presets</button>
-            <button id="importPresetBtn" class="border rounded-lg px-3 py-2 text-base">Import Presets</button>
+            <button id="savePresetBtn" class="border rounded-lg px-3 py-2 text-base" data-i18n="saveAsPreset">Save as Preset</button>
+            <button id="exportPresetBtn" class="border rounded-lg px-3 py-2 text-base" data-i18n="exportPresets">Export Presets</button>
+            <button id="importPresetBtn" class="border rounded-lg px-3 py-2 text-base" data-i18n="importPresets">Import Presets</button>
           </div>
         </div>
         
         <!-- Tab Navigation -->
         <div class="flex mb-0 border-b overflow-x-auto">
-          <div class="tab-button active" data-tab="basic">Basic</div>
-          <div class="tab-button" data-tab="adjustments">Adjustments</div>
-          <div class="tab-button" data-tab="color">Color</div>
-          <div class="tab-button" data-tab="text">Text Overlay</div>
-          <div class="tab-button desktop-only" data-tab="animation">Animation</div>
-          <div class="tab-button" data-tab="advanced">Advanced</div>
+          <div class="tab-button active" data-tab="basic" data-i18n="basic">Basic</div>
+          <div class="tab-button" data-tab="adjustments" data-i18n="adjustments">Adjustments</div>
+          <div class="tab-button" data-tab="color" data-i18n="color">Color</div>
+          <div class="tab-button" data-tab="text" data-i18n="textOverlay">Text Overlay</div>
+          <div class="tab-button desktop-only" data-tab="animation" data-i18n="animation">Animation</div>
+          <div class="tab-button" data-tab="advanced" data-i18n="advancedTab">Advanced</div>
         </div>
         
         <!-- Tab Content -->
@@ -542,7 +659,7 @@
           <div id="basic-tab" class="tab-content active">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label for="styleSelect" class="block mb-2 font-medium">Character Style:</label>
+                <label for="styleSelect" class="block mb-2 font-medium" data-i18n="characterStyle">Character Style:</label>
                 <select id="styleSelect" class="w-full px-3 py-2 border rounded-lg text-base">
                   <option value="default">Default (ASCII characters)</option>
                   <option value="simple">Simple (█▓▒░ )</option>
@@ -556,28 +673,28 @@
               </div>
               
               <div id="customCharsContainer" class="hidden">
-                <label for="customChars" class="block mb-2 font-medium">Custom Characters:</label>
+                <label for="customChars" class="block mb-2 font-medium" data-i18n="customCharacters">Custom Characters:</label>
                 <input type="text" id="customChars" class="w-full px-3 py-2 border rounded-lg text-base" placeholder="@#$%&?!;:+=-_" value="@#$%&?!;:+=-_">
               </div>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label for="resolutionSlider" class="block mb-2 font-medium">Resolution: <span id="resolutionValue">100</span>%</label>
+                <label for="resolutionSlider" class="block mb-2 font-medium" data-i18n="resolution">Resolution: <span id="resolutionValue">100</span>%</label>
                 <input type="range" id="resolutionSlider" class="slider w-full" min="10" max="200" value="100">
               </div>
               
               <div>
                 <label for="invertCheckbox" class="font-medium flex items-center cursor-pointer">
                   <input type="checkbox" id="invertCheckbox" class="mr-2 h-5 w-5">
-                  Invert Colors
+                  <span data-i18n="invertColors">Invert Colors</span>
                 </label>
               </div>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label for="colorModeSelect" class="block mb-2 font-medium">Color Mode:</label>
+                <label for="colorModeSelect" class="block mb-2 font-medium" data-i18n="colorMode">Color Mode:</label>
                 <select id="colorModeSelect" class="w-full px-3 py-2 border rounded-lg text-base">
                   <option value="greyscale">Greyscale</option>
                   <option value="color">Colorful ASCII</option>
@@ -586,7 +703,7 @@
               </div>
               
               <div id="colorPaletteSelect" class="hidden">
-                <label for="paletteSelect" class="block mb-2 font-medium">Color Palette:</label>
+                <label for="paletteSelect" class="block mb-2 font-medium" data-i18n="colorPalette">Color Palette:</label>
                 <select id="paletteSelect" class="w-full px-3 py-2 border rounded-lg text-base">
                   <option value="monochrome">Monochrome (Blue)</option>
                   <option value="duotone">Duotone (Blue/Orange)</option>
@@ -600,7 +717,7 @@
               </div>
               
               <div id="customPaletteContainer" class="hidden mt-4 col-span-2">
-                <label class="block mb-2 font-medium">Custom Color Palette:</label>
+                <label class="block mb-2 font-medium" data-i18n="customColorPalette">Custom Color Palette:</label>
                 <div id="customPalette" class="flex flex-wrap gap-2 mb-2">
                   <!-- Color swatches will be added here -->
                 </div>
@@ -617,24 +734,24 @@
           <div id="adjustments-tab" class="tab-content">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label for="brightnessSlider" class="block mb-2 font-medium">Brightness: <span id="brightnessValue">1.0</span></label>
+                <label for="brightnessSlider" class="block mb-2 font-medium" data-i18n="brightness">Brightness: <span id="brightnessValue">1.0</span></label>
                 <input type="range" id="brightnessSlider" class="slider w-full" min="0.1" max="3" step="0.1" value="1.0">
               </div>
               
               <div>
-                <label for="contrastSlider" class="block mb-2 font-medium">Contrast: <span id="contrastValue">1.0</span></label>
+                <label for="contrastSlider" class="block mb-2 font-medium" data-i18n="contrast">Contrast: <span id="contrastValue">1.0</span></label>
                 <input type="range" id="contrastSlider" class="slider w-full" min="0.1" max="3" step="0.1" value="1.0">
               </div>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label for="gammaSlider" class="block mb-2 font-medium">Gamma: <span id="gammaValue">1.0</span></label>
+                <label for="gammaSlider" class="block mb-2 font-medium" data-i18n="gamma">Gamma: <span id="gammaValue">1.0</span></label>
                 <input type="range" id="gammaSlider" class="slider w-full" min="0.1" max="3" step="0.1" value="1.0">
               </div>
               
               <div>
-                <label for="saturationSlider" class="block mb-2 font-medium">Saturation: <span id="saturationValue">1.0</span></label>
+                <label for="saturationSlider" class="block mb-2 font-medium" data-i18n="saturation">Saturation: <span id="saturationValue">1.0</span></label>
                 <input type="range" id="saturationSlider" class="slider w-full" min="0" max="3" step="0.1" value="1.0">
               </div>
             </div>
@@ -644,24 +761,24 @@
           <div id="color-tab" class="tab-content">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label for="fontSizeSlider" class="block mb-2 font-medium">Character Size: <span id="fontSizeValue">10</span>px</label>
+                <label for="fontSizeSlider" class="block mb-2 font-medium" data-i18n="characterSize">Character Size: <span id="fontSizeValue">10</span>px</label>
                 <input type="range" id="fontSizeSlider" class="slider w-full" min="4" max="24" value="10">
               </div>
               
               <div>
-                <label for="lineHeightSlider" class="block mb-2 font-medium">Line Height: <span id="lineHeightValue">1.0</span></label>
+                <label for="lineHeightSlider" class="block mb-2 font-medium" data-i18n="lineHeight">Line Height: <span id="lineHeightValue">1.0</span></label>
                 <input type="range" id="lineHeightSlider" class="slider w-full" min="0.5" max="2" step="0.1" value="1.0">
               </div>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label for="letterSpacingSlider" class="block mb-2 font-medium">Letter Spacing: <span id="letterSpacingValue">0.5</span>em</label>
+                <label for="letterSpacingSlider" class="block mb-2 font-medium" data-i18n="letterSpacing">Letter Spacing: <span id="letterSpacingValue">0.5</span>em</label>
                 <input type="range" id="letterSpacingSlider" class="slider w-full" min="0" max="1" step="0.05" value="0.5">
               </div>
               
               <div>
-                <label for="bgColorPicker" class="block mb-2 font-medium">Background Color:</label>
+                <label for="bgColorPicker" class="block mb-2 font-medium" data-i18n="backgroundColor">Background Color:</label>
                 <input type="color" id="bgColorPicker" class="w-full h-10 rounded-lg" value="#ffffff">
               </div>
             </div>
@@ -671,15 +788,15 @@
           <div id="text-tab" class="tab-content">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label for="textOverlayMode" class="block mb-2 font-medium">Text Mode:</label>
+                <label for="textOverlayMode" class="block mb-2 font-medium" data-i18n="textMode">Text Mode:</label>
                 <select id="textOverlayMode" class="w-full px-3 py-2 border rounded-lg text-base">
-                  <option value="direct">Direct Text Overlay</option>
-                  <option value="ascii">ASCII Text Conversion</option>
+                  <option value="direct" data-i18n="directTextOverlay">Direct Text Overlay</option>
+                  <option value="ascii" data-i18n="asciiTextConversion">ASCII Text Conversion</option>
                 </select>
               </div>
               
               <div>
-                <label for="textFont" class="block mb-2 font-medium">Font:</label>
+                <label for="textFont" class="block mb-2 font-medium" data-i18n="font">Font:</label>
                 <select id="textFont" class="w-full px-3 py-2 border rounded-lg text-base">
                   <option value="Consolas">Consolas</option>
                   <option value="'Comic Sans MS'">Comic Sans</option>
@@ -693,39 +810,39 @@
             </div>
             
             <div class="mb-4">
-              <label for="textInput" class="block mb-2 font-medium">Text:</label>
+              <label for="textInput" class="block mb-2 font-medium" data-i18n="text">Text:</label>
               <textarea id="textInput" class="w-full px-3 py-2 border rounded-lg text-base" rows="2" placeholder="Enter your text here"></textarea>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
-                <label for="textSizeSlider" class="block mb-2 font-medium">Text Size: <span id="textSizeValue">24</span>px</label>
+                <label for="textSizeSlider" class="block mb-2 font-medium" data-i18n="textSize">Text Size: <span id="textSizeValue">24</span>px</label>
                 <input type="range" id="textSizeSlider" class="slider w-full" min="8" max="72" value="24">
               </div>
               
               <div>
-                <label for="textColorPicker" class="block mb-2 font-medium">Text Color:</label>
+                <label for="textColorPicker" class="block mb-2 font-medium" data-i18n="textColor">Text Color:</label>
                 <input type="color" id="textColorPicker" class="w-full h-10 rounded-lg" value="#ffffff">
               </div>
               
               <div>
-                <label for="textPosition" class="block mb-2 font-medium">Position:</label>
+                <label for="textPosition" class="block mb-2 font-medium" data-i18n="position">Position:</label>
                 <select id="textPosition" class="w-full px-3 py-2 border rounded-lg text-base">
-                  <option value="top-left">Top Left</option>
-                  <option value="top-center">Top Center</option>
-                  <option value="top-right">Top Right</option>
-                  <option value="middle-left">Middle Left</option>
-                  <option value="middle-center">Middle Center</option>
-                  <option value="middle-right">Middle Right</option>
-                  <option value="bottom-left">Bottom Left</option>
-                  <option value="bottom-center">Bottom Center</option>
-                  <option value="bottom-right">Bottom Right</option>
+                  <option value="top-left" data-i18n="topLeft">Top Left</option>
+                  <option value="top-center" data-i18n="topCenter">Top Center</option>
+                  <option value="top-right" data-i18n="topRight">Top Right</option>
+                  <option value="middle-left" data-i18n="middleLeft">Middle Left</option>
+                  <option value="middle-center" data-i18n="middleCenter">Middle Center</option>
+                  <option value="middle-right" data-i18n="middleRight">Middle Right</option>
+                  <option value="bottom-left" data-i18n="bottomLeft">Bottom Left</option>
+                  <option value="bottom-center" data-i18n="bottomCenter">Bottom Center</option>
+                  <option value="bottom-right" data-i18n="bottomRight">Bottom Right</option>
                 </select>
               </div>
             </div>
             
             <div class="mb-4">
-              <h3 class="font-medium mb-2">Text Preview:</h3>
+              <h3 class="font-medium mb-2" data-i18n="textPreview">Text Preview:</h3>
               <div class="text-preview relative bg-gray-200 dark:bg-gray-700">
                 <div id="textPreview" class="text-center"></div>
               </div>
@@ -736,26 +853,26 @@
           <div id="animation-tab" class="tab-content">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label for="fpsSlider" class="block mb-2 font-medium">Frame Rate: <span id="fpsValue">15</span> FPS</label>
+                <label for="fpsSlider" class="block mb-2 font-medium" data-i18n="frameRate">Frame Rate: <span id="fpsValue">15</span> FPS</label>
                 <input type="range" id="fpsSlider" class="slider w-full" min="1" max="30" value="15">
               </div>
               
               <div>
-                <label for="animResolutionSlider" class="block mb-2 font-medium">Animation Resolution: <span id="animResolutionValue">50</span>%</label>
+                <label for="animResolutionSlider" class="block mb-2 font-medium" data-i18n="animationResolution">Animation Resolution: <span id="animResolutionValue">50</span>%</label>
                 <input type="range" id="animResolutionSlider" class="slider w-full" min="10" max="100" value="50">
               </div>
             </div>
             
             <div>
-              <label for="skipFramesSlider" class="block mb-2 font-medium">Process every <span id="skipFramesValue">1</span> frame(s)</label>
+              <label for="skipFramesSlider" class="block mb-2 font-medium" data-i18n="processFrames">Process every <span id="skipFramesValue">1</span> frame(s)</label>
               <input type="range" id="skipFramesSlider" class="slider w-full" min="1" max="10" value="1">
-              <p class="text-sm text-gray-500 mt-1">Higher values improve performance but reduce smoothness</p>
+              <p class="text-sm text-gray-500 mt-1" data-i18n="performanceNote">Higher values improve performance but reduce smoothness</p>
             </div>
             
             <div class="mt-4 p-2 bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100 rounded">
               <p class="text-sm">
-                <strong>Note:</strong> Animation processing may take time depending on your video length and settings. 
-                For best performance, use short videos and lower resolutions.
+                <strong data-i18n="noteLabel">Note:</strong> <span data-i18n="animationProcessingNote">Animation processing may take time depending on your video length and settings. 
+                For best performance, use short videos and lower resolutions.</span>
               </p>
             </div>
           </div>
@@ -763,9 +880,9 @@
           <!-- Advanced Tab -->
           <div id="advanced-tab" class="tab-content">
             <div id="ditheringContainer" class="mb-4">
-              <label for="ditheringSelect" class="block mb-2 font-medium">Dithering:</label>
+              <label for="ditheringSelect" class="block mb-2 font-medium" data-i18n="dithering">Dithering:</label>
               <select id="ditheringSelect" class="w-full px-3 py-2 border rounded-lg text-base">
-                <option value="none">None</option>
+                <option value="none" data-i18n="none">None</option>
                 <option value="floydSteinberg">Floyd-Steinberg</option>
                 <option value="bayer">Bayer</option>
                 <option value="minAvgErr">MinAvgErr</option>
@@ -780,53 +897,53 @@
               <div>
                 <label for="pixelateCheckbox" class="font-medium flex items-center cursor-pointer">
                   <input type="checkbox" id="pixelateCheckbox" class="mr-2 h-5 w-5">
-                  Pixelate Image
+                  <span data-i18n="pixelateImage">Pixelate Image</span>
                 </label>
               </div>
               
               <div>
                 <label for="edgeDetectCheckbox" class="font-medium flex items-center cursor-pointer">
                   <input type="checkbox" id="edgeDetectCheckbox" class="mr-2 h-5 w-5">
-                  Edge Detection
+                  <span data-i18n="edgeDetection">Edge Detection</span>
                 </label>
               </div>
             </div>
 
             <div class="mb-4">
-              <label for="charRandomizerSlider" class="block mb-2 font-medium">Character Randomizer: <span id="charRandomizerValue">0</span>%</label>
+              <label for="charRandomizerSlider" class="block mb-2 font-medium" data-i18n="characterRandomizer">Character Randomizer: <span id="charRandomizerValue">0</span>%</label>
               <input type="range" id="charRandomizerSlider" class="slider w-full" min="0" max="100" value="0">
-              <p class="text-xs text-gray-500 mt-1">Randomly replaces characters with others from the same character set</p>
+              <p class="text-xs text-gray-500 mt-1" data-i18n="characterRandomizerNote">Randomly replaces characters with others from the same character set</p>
             </div>
             
             <div class="mb-4">
-              <label class="block mb-2 font-medium">Brightness Threshold Masking:</label>
+              <label class="block mb-2 font-medium" data-i18n="brightnessThresholdMasking">Brightness Threshold Masking:</label>
               <div class="flex items-center gap-4 mb-2">
                 <div class="flex-1">
-                  <label class="text-sm block mb-1">Min: <span id="brightnessThresholdMinValue">0</span>%</label>
+                  <label class="text-sm block mb-1" data-i18n="thresholdMin">Min: <span id="brightnessThresholdMinValue">0</span>%</label>
                   <input type="range" id="brightnessThresholdMinSlider" class="slider w-full" min="0" max="100" value="0">
                 </div>
                 <div class="flex-1">
-                  <label class="text-sm block mb-1">Max: <span id="brightnessThresholdMaxValue">100</span>%</label>
+                  <label class="text-sm block mb-1" data-i18n="thresholdMax">Max: <span id="brightnessThresholdMaxValue">100</span>%</label>
                   <input type="range" id="brightnessThresholdMaxSlider" class="slider w-full" min="0" max="100" value="100">
                 </div>
               </div>
               <div class="flex items-center gap-2 mb-2">
-                <label for="thresholdMaskModeSelect" class="text-sm">Outside threshold:</label>
+                <label for="thresholdMaskModeSelect" class="text-sm" data-i18n="outsideThreshold">Outside threshold:</label>
                 <select id="thresholdMaskModeSelect" class="px-2 py-1 text-sm rounded border">
-                  <option value="transparent">Transparent</option>
-                  <option value="space">Space Character</option>
-                  <option value="custom">Custom Character</option>
+                  <option value="transparent" data-i18n="transparent">Transparent</option>
+                  <option value="space" data-i18n="spaceCharacter">Space Character</option>
+                  <option value="custom" data-i18n="customCharacter">Custom Character</option>
                 </select>
                 <input type="text" id="thresholdMaskCustomChar" class="w-12 px-2 py-1 text-sm border rounded hidden" maxlength="1" value=" ">
               </div>
-              <p class="text-xs text-gray-500 mt-1">Only converts pixels within the brightness threshold range to ASCII</p>
+              <p class="text-xs text-gray-500 mt-1" data-i18n="thresholdMaskingNote">Only converts pixels within the brightness threshold range to ASCII</p>
             </div>
           </div>
         </div>
       </div>
       
       <div class="mt-6 flex justify-center">
-        <button id="generateBtn" class="primary-btn rounded-lg px-6 py-3 text-lg font-semibold">Generate ASCII Art</button>
+        <button id="generateBtn" class="primary-btn rounded-lg px-6 py-3 text-lg font-semibold" data-i18n="generateButton">Generate ASCII Art</button>
       </div>
     </div>
     
@@ -837,7 +954,7 @@
     </div>
     
     <div id="resultSection" class="hidden">
-      <h2 class="text-xl font-bold mb-4">ASCII Art Result</h2>
+      <h2 class="text-xl font-bold mb-4" data-i18n="asciiArtResult">ASCII Art Result</h2>
       
       <div class="ascii-container p-4 rounded-lg border mb-4 relative">
         <div id="asciiOutput" class="ascii-pre"></div>
@@ -859,9 +976,9 @@
       </div>
       
       <div class="flex flex-wrap justify-center gap-4 mt-4">
-        <button id="saveImageBtn" class="primary-btn rounded-lg px-4 py-2 font-medium">Save as Image</button>
-        <button id="copyTextBtn" class="border rounded-lg px-4 py-2 font-medium">Copy ASCII Text</button>
-        <button id="newImageBtn" class="border rounded-lg px-4 py-2 font-medium">Process New Media</button>
+        <button id="saveImageBtn" class="primary-btn rounded-lg px-4 py-2 font-medium" data-i18n="saveAsImage">Save as Image</button>
+        <button id="copyTextBtn" class="border rounded-lg px-4 py-2 font-medium" data-i18n="copyAsciiText">Copy ASCII Text</button>
+        <button id="newImageBtn" class="border rounded-lg px-4 py-2 font-medium" data-i18n="processNewMedia">Process New Media</button>
       </div>
       
       <div id="saveInstructions" class="mt-4 text-center text-sm hidden">
@@ -908,6 +1025,72 @@
         <div class="flex justify-end gap-2">
           <button id="cancelImportPresetBtn" class="border rounded-lg px-4 py-2">Cancel</button>
           <button id="confirmImportPresetBtn" class="primary-btn rounded-lg px-4 py-2">Import</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Toy Mode Enhanced Controls -->
+    <div id="toyControlsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
+        <h3 class="text-xl font-bold mb-4">Interactive Mode Settings</h3>
+        
+        <div class="mb-4">
+          <label for="toyRenderingMode" class="block mb-2 font-medium">Rendering Mode:</label>
+          <select id="toyRenderingMode" class="w-full px-3 py-2 border rounded-lg text-base">
+            <option value="dom">DOM Elements (Better Quality)</option>
+            <option value="canvas" selected>Canvas (Better Performance)</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">Canvas mode works better on mobile devices.</p>
+        </div>
+        
+        <div class="mb-4">
+          <label for="toyPerformanceMode" class="block mb-2 font-medium">Performance Mode:</label>
+          <select id="toyPerformanceMode" class="w-full px-3 py-2 border rounded-lg text-base">
+            <option value="high">High Quality</option>
+            <option value="balanced" selected>Balanced</option>
+            <option value="performance">Performance Mode</option>
+            <option value="extreme">Extreme Performance</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">Choose performance mode based on your device capabilities.</p>
+        </div>
+        
+        <div class="mb-4">
+          <label for="toySamplingRate" class="block mb-2 font-medium">Character Sampling: <span id="toySamplingRateValue">100</span>%</label>
+          <input type="range" id="toySamplingRate" class="slider w-full" min="5" max="100" step="5" value="100">
+          <p class="text-xs text-gray-500 mt-1">Reduce for better performance on complex ASCII art.</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label for="toyCursorRadius" class="block mb-2 font-medium">Cursor Radius: <span id="toyCursorRadiusValue">40</span>px</label>
+            <input type="range" id="toyCursorRadius" class="slider w-full" min="10" max="100" value="40">
+          </div>
+          
+          <div>
+            <label for="toyForceStrength" class="block mb-2 font-medium">Force Strength: <span id="toyForceStrengthValue">0.8</span></label>
+            <input type="range" id="toyForceStrength" class="slider w-full" min="0.1" max="2" step="0.1" value="0.8">
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <label for="toyMaxCharacters" class="block mb-2 font-medium">Maximum Characters: <span id="toyMaxCharactersValue">1000</span></label>
+          <input type="range" id="toyMaxCharacters" class="slider w-full" min="100" max="3000" step="100" value="1000">
+          <p class="text-xs text-gray-500 mt-1">Limit maximum characters for better performance.</p>
+        </div>
+        
+        <div class="mb-4">
+          <label class="flex items-center">
+            <input type="checkbox" id="toyShowStats" class="mr-2">
+            <span>Show Performance Stats</span>
+          </label>
+        </div>
+        
+        <div class="flex justify-between">
+          <button id="toyResetDefaults" class="border rounded-lg px-4 py-2">Reset Defaults</button>
+          <div class="flex gap-2">
+            <button id="toyCloseModal" class="border rounded-lg px-4 py-2">Close</button>
+            <button id="toyApplySettings" class="primary-btn rounded-lg px-4 py-2">Apply & Play</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1037,6 +1220,25 @@
       const presetJSON = document.getElementById('presetJSON');
       const confirmImportPresetBtn = document.getElementById('confirmImportPresetBtn');
       const cancelImportPresetBtn = document.getElementById('cancelImportPresetBtn');
+
+      // DOM Elements - Toy Mode Enhanced
+      const toyFeatureContainer = document.getElementById('toyFeatureContainer');
+      const toyWithCreationBtn = document.getElementById('toyWithCreationBtn');
+      const toyControlsModal = document.getElementById('toyControlsModal');
+      const toyRenderingMode = document.getElementById('toyRenderingMode');
+      const toyPerformanceMode = document.getElementById('toyPerformanceMode');
+      const toySamplingRate = document.getElementById('toySamplingRate');
+      const toySamplingRateValue = document.getElementById('toySamplingRateValue');
+      const toyCursorRadius = document.getElementById('toyCursorRadius');
+      const toyCursorRadiusValue = document.getElementById('toyCursorRadiusValue');
+      const toyForceStrength = document.getElementById('toyForceStrength');
+      const toyForceStrengthValue = document.getElementById('toyForceStrengthValue');
+      const toyMaxCharacters = document.getElementById('toyMaxCharacters');
+      const toyMaxCharactersValue = document.getElementById('toyMaxCharactersValue');
+      const toyShowStats = document.getElementById('toyShowStats');
+      const toyResetDefaults = document.getElementById('toyResetDefaults');
+      const toyCloseModal = document.getElementById('toyCloseModal');
+      const toyApplySettings = document.getElementById('toyApplySettings');
       
       // Tab Navigation
       const tabButtons = document.querySelectorAll('.tab-button');
@@ -1093,6 +1295,306 @@
       // In-memory preset storage (since localStorage is not available in sandbox)
       let savedPresets = {};
       
+      // Translations for multilingual support
+      const translations = {
+        en: {
+          // App title and UI
+          appTitle: "Enhanced ASCII Art Generator",
+          simple: "Simple",
+          advanced: "Advanced",
+          mobileNotice: "You're using the simplified mobile view.",
+          mobileDetails: "For full functionality including video processing and advanced settings, please use a wider window or desktop device.",
+          dropZoneText: "Drag and drop an image<span class='desktop-only'>/video</span> or click to select",
+          selectImage: "Select Image",
+          selectVideo: "Select Video/GIF",
+          
+          // Section headers
+          mediaPreview: "Media Preview",
+          simpleMode: "Simple Mode",
+          asciiArtSettings: "ASCII Art Settings",
+          asciiArtResult: "ASCII Art Result",
+          
+          // Tab names
+          basic: "Basic",
+          adjustments: "Adjustments",
+          color: "Color",
+          textOverlay: "Text Overlay",
+          animation: "Animation",
+          advancedTab: "Advanced",
+          
+          // Controls and labels
+          characterStyle: "Character Style:",
+          customCharacters: "Custom Characters:",
+          resolution: "Resolution:",
+          invertColors: "Invert Colors",
+          colorMode: "Color Mode:",
+          colorPalette: "Color Palette:",
+          customColorPalette: "Custom Color Palette:",
+          brightness: "Brightness:",
+          contrast: "Contrast:",
+          gamma: "Gamma:",
+          saturation: "Saturation:",
+          characterSize: "Character Size:",
+          lineHeight: "Line Height:",
+          letterSpacing: "Letter Spacing:",
+          backgroundColor: "Background Color:",
+          
+          // Text Overlay tab
+          textMode: "Text Mode:",
+          directTextOverlay: "Direct Text Overlay",
+          asciiTextConversion: "ASCII Text Conversion",
+          font: "Font:",
+          text: "Text:",
+          enterTextHere: "Enter your text here",
+          textSize: "Text Size:",
+          textColor: "Text Color:",
+          position: "Position:",
+          topLeft: "Top Left",
+          topCenter: "Top Center",
+          topRight: "Top Right",
+          middleLeft: "Middle Left",
+          middleCenter: "Middle Center",
+          middleRight: "Middle Right",
+          bottomLeft: "Bottom Left",
+          bottomCenter: "Bottom Center",
+          bottomRight: "Bottom Right",
+          textPreview: "Text Preview:",
+          
+          // Animation tab
+          frameRate: "Frame Rate:",
+          animationResolution: "Animation Resolution:",
+          processFrames: "Process every frame(s)",
+          performanceNote: "Higher values improve performance but reduce smoothness",
+          noteLabel: "Note:",
+          animationProcessingNote: "Animation processing may take time depending on your video length and settings. For best performance, use short videos and lower resolutions.",
+          
+          // Advanced tab
+          dithering: "Dithering:",
+          none: "None",
+          pixelateImage: "Pixelate Image",
+          edgeDetection: "Edge Detection",
+          characterRandomizer: "Character Randomizer:",
+          characterRandomizerNote: "Randomly replaces characters with others from the same character set",
+          brightnessThresholdMasking: "Brightness Threshold Masking:",
+          thresholdMin: "Min:",
+          thresholdMax: "Max:",
+          outsideThreshold: "Outside threshold:",
+          transparent: "Transparent",
+          spaceCharacter: "Space Character",
+          customCharacter: "Custom Character",
+          thresholdMaskingNote: "Only converts pixels within the brightness threshold range to ASCII",
+          
+          // Buttons
+          generateButton: "Generate ASCII Art",
+          saveAsImage: "Save as Image",
+          copyAsciiText: "Copy ASCII Text",
+          processNewMedia: "Process New Media",
+          saveAsPreset: "Save as Preset",
+          exportPresets: "Export Presets",
+          importPresets: "Import Presets",
+          
+          // Notifications
+          noPresetsError: "No presets to export. Save a preset first.",
+          presetsCopied: "Preset data copied to clipboard!",
+          copyError: "Failed to copy preset data to clipboard",
+          exportError: "Error exporting presets",
+          
+          // Modals
+          exportTitle: "Export Presets",
+          presetCopiedInfo: "Preset data has been copied to your clipboard.",
+          downloadInfo: "You can also right-click the link below and select \"Save link as...\" to download a JSON file:",
+          close: "Close"
+        },
+        zh: {
+          // 应用标题和UI
+          appTitle: "增强型ASCII艺术生成器",
+          simple: "简单",
+          advanced: "高级",
+          mobileNotice: "您正在使用简化的移动视图。",
+          mobileDetails: "若要获得完整功能（包括视频处理和高级设置），请使用更宽的屏幕或桌面设备。",
+          dropZoneText: "拖放图像<span class='desktop-only'>/视频</span>或点击选择",
+          selectImage: "选择图像",
+          selectVideo: "选择视频/GIF",
+          
+          // 区域标题
+          mediaPreview: "媒体预览",
+          simpleMode: "简单模式",
+          asciiArtSettings: "ASCII艺术设置",
+          asciiArtResult: "ASCII艺术结果",
+          
+          // 标签名称
+          basic: "基础",
+          adjustments: "调整",
+          color: "颜色",
+          textOverlay: "文本覆盖",
+          animation: "动画",
+          advancedTab: "高级",
+          
+          // 控件和标签
+          characterStyle: "字符风格：",
+          customCharacters: "自定义字符：",
+          resolution: "分辨率：",
+          invertColors: "反转颜色",
+          colorMode: "颜色模式：",
+          colorPalette: "颜色调色板：",
+          customColorPalette: "自定义调色板：",
+          brightness: "亮度：",
+          contrast: "对比度：",
+          gamma: "伽马值：",
+          saturation: "饱和度：",
+          characterSize: "字符大小：",
+          lineHeight: "行高：",
+          letterSpacing: "字符间距：",
+          backgroundColor: "背景颜色：",
+          
+          // 文本覆盖标签
+          textMode: "文本模式：",
+          directTextOverlay: "直接文本覆盖",
+          asciiTextConversion: "ASCII文本转换",
+          font: "字体：",
+          text: "文本：",
+          enterTextHere: "在此输入文本",
+          textSize: "文本大小：",
+          textColor: "文本颜色：",
+          position: "位置：",
+          topLeft: "左上",
+          topCenter: "顶部居中",
+          topRight: "右上",
+          middleLeft: "左中",
+          middleCenter: "居中",
+          middleRight: "右中",
+          bottomLeft: "左下",
+          bottomCenter: "底部居中",
+          bottomRight: "右下",
+          textPreview: "文本预览：",
+          
+          // 动画标签
+          frameRate: "帧率：",
+          animationResolution: "动画分辨率：",
+          processFrames: "处理每帧",
+          performanceNote: "较高的值可提高性能但会降低流畅度",
+          noteLabel: "注意：",
+          animationProcessingNote: "动画处理可能需要一些时间，取决于您的视频长度和设置。为了获得最佳性能，请使用较短的视频和较低的分辨率。",
+          
+          // 高级标签
+          dithering: "抖动：",
+          none: "无",
+          pixelateImage: "像素化图像",
+          edgeDetection: "边缘检测",
+          characterRandomizer: "字符随机化：",
+          characterRandomizerNote: "随机用相同字符集中的其他字符替换",
+          brightnessThresholdMasking: "亮度阈值蒙版：",
+          thresholdMin: "最小值：",
+          thresholdMax: "最大值：",
+          outsideThreshold: "阈值外处理：",
+          transparent: "透明",
+          spaceCharacter: "空格字符",
+          customCharacter: "自定义字符",
+          thresholdMaskingNote: "仅将亮度阈值范围内的像素转换为ASCII",
+          
+          // 按钮
+          generateButton: "生成ASCII艺术",
+          saveAsImage: "保存为图像",
+          copyAsciiText: "复制ASCII文本",
+          processNewMedia: "处理新媒体",
+          saveAsPreset: "保存为预设",
+          exportPresets: "导出预设",
+          importPresets: "导入预设",
+          
+          // 通知
+          noPresetsError: "没有可导出的预设。请先保存一个预设。",
+          presetsCopied: "预设数据已复制到剪贴板！",
+          copyError: "复制预设数据到剪贴板失败",
+          exportError: "导出预设时出错",
+          
+          // 模态框
+          exportTitle: "导出预设",
+          presetCopiedInfo: "预设数据已复制到您的剪贴板。",
+          downloadInfo: "您也可以右键点击下面的链接并选择\"另存为...\"下载JSON文件：",
+          close: "关闭"
+        }
+      };
+      
+      // Current language
+      let currentLanguage = 'en';
+      
+      // Language selector event listener
+      const languageSelect = document.getElementById('languageSelect');
+      languageSelect.addEventListener('change', (e) => {
+        currentLanguage = e.target.value;
+        updateAllTranslations();
+      });
+      
+      // Update all translations
+      function updateAllTranslations() {
+        const elements = document.querySelectorAll('[data-i18n]');
+        elements.forEach(element => {
+          const key = element.getAttribute('data-i18n');
+          if (translations[currentLanguage][key]) {
+            if (element.tagName === 'INPUT' && element.type === 'placeholder') {
+              element.placeholder = translations[currentLanguage][key];
+            } else {
+              element.innerHTML = translations[currentLanguage][key];
+            }
+          }
+        });
+        
+        // Update page title
+        document.getElementById('pageTitle').textContent = translations[currentLanguage].appTitle;
+        
+        // Update buttons
+        if (generateBtn) generateBtn.textContent = translations[currentLanguage].generateButton;
+        if (saveImageBtn) saveImageBtn.textContent = translations[currentLanguage].saveAsImage;
+        if (copyTextBtn) copyTextBtn.textContent = translations[currentLanguage].copyAsciiText;
+        if (newImageBtn) newImageBtn.textContent = translations[currentLanguage].processNewMedia;
+        if (savePresetBtn) savePresetBtn.textContent = translations[currentLanguage].saveAsPreset;
+        if (exportPresetBtn) exportPresetBtn.textContent = translations[currentLanguage].exportPresets;
+        if (importPresetBtn) importPresetBtn.textContent = translations[currentLanguage].importPresets;
+        
+        // Update all select options
+        updateSelectOptions();
+      }
+      
+      // Update options in select elements
+      function updateSelectOptions() {
+        // Update text overlay mode select options
+        if (textOverlayMode) {
+          const directOption = textOverlayMode.querySelector('option[value="direct"]');
+          const asciiOption = textOverlayMode.querySelector('option[value="ascii"]');
+          if (directOption) directOption.textContent = translations[currentLanguage].directTextOverlay;
+          if (asciiOption) asciiOption.textContent = translations[currentLanguage].asciiTextConversion;
+        }
+        
+        // Update position select options
+        if (textPosition) {
+          const positions = ['topLeft', 'topCenter', 'topRight', 'middleLeft', 'middleCenter', 
+                            'middleRight', 'bottomLeft', 'bottomCenter', 'bottomRight'];
+          positions.forEach(pos => {
+            const option = textPosition.querySelector(`option[value="${pos.replace(/([A-Z])/g, '-$1').toLowerCase()}"]`);
+            if (option && translations[currentLanguage][pos]) {
+              option.textContent = translations[currentLanguage][pos];
+            }
+          });
+        }
+        
+        // Update threshold mask mode select options
+        if (thresholdMaskModeSelect) {
+          const transparentOption = thresholdMaskModeSelect.querySelector('option[value="transparent"]');
+          const spaceOption = thresholdMaskModeSelect.querySelector('option[value="space"]');
+          const customOption = thresholdMaskModeSelect.querySelector('option[value="custom"]');
+          
+          if (transparentOption) transparentOption.textContent = translations[currentLanguage].transparent;
+          if (spaceOption) spaceOption.textContent = translations[currentLanguage].spaceCharacter;
+          if (customOption) customOption.textContent = translations[currentLanguage].customCharacter;
+        }
+        
+        // Update dithering select option for 'none'
+        if (ditheringSelect) {
+          const noneOption = ditheringSelect.querySelector('option[value="none"]');
+          if (noneOption) noneOption.textContent = translations[currentLanguage].none;
+        }
+      }
+      
       // Dark Mode
       darkModeToggle.addEventListener('change', () => {
         if (darkModeToggle.checked) {
@@ -1109,7 +1611,7 @@
         const aspectRatio = window.innerWidth / window.innerHeight;
         console.log('Checking mobile mode, aspect ratio:', aspectRatio);
         
-        if (aspectRatio <= 0.5 && !inMobileMode) {
+        if (aspectRatio <= 0.8 && !inMobileMode) {
           console.log('Switching to mobile mode');
           // Switch to mobile mode
           inMobileMode = true;
@@ -1128,7 +1630,7 @@
           if (mediaType === 'video') {
             resetToNewImage();
           }
-        } else if (aspectRatio > 0.5 && inMobileMode) {
+        } else if (aspectRatio > 0.8 && inMobileMode) {
           console.log('Switching out of mobile mode');
           // Switch out of mobile mode
           inMobileMode = false;
@@ -1235,10 +1737,18 @@
       });
       
       // Event Listeners for media selection
-      selectImageBtn.addEventListener('click', () => imageInput.click());
-      selectVideoBtn.addEventListener('click', () => videoInput.click());
+      selectImageBtn.addEventListener('click', () => {
+        console.log("Image button clicked");
+        imageInput.click();
+      });
+      
+      selectVideoBtn.addEventListener('click', () => {
+        console.log("Video button clicked");
+        videoInput.click();
+      });
       
       imageInput.addEventListener('change', (e) => {
+        console.log("Image input changed:", e.target.files.length ? e.target.files[0].name : "No file");
         if (e.target.files.length) {
           mediaType = 'image';
           handleFile(e.target.files[0]);
@@ -1246,6 +1756,7 @@
       });
       
       videoInput.addEventListener('change', (e) => {
+        console.log("Video input changed:", e.target.files.length ? e.target.files[0].name : "No file");
         if (e.target.files.length && !inMobileMode) {
           mediaType = 'video';
           handleFile(e.target.files[0]);
@@ -1270,6 +1781,7 @@
         
         if (e.dataTransfer.files.length) {
           const file = e.dataTransfer.files[0];
+          console.log("File dropped:", file.name, file.type);
           
           if (file.type.match('image.*')) {
             mediaType = 'image';
@@ -1880,94 +2392,949 @@
         }
       }
       
-      // Create controls for toy mode settings
-      const toyControlsHtml = `
-        <div id="toyControls" class="bg-white dark:bg-gray-800 p-2 rounded-lg border mt-2 hidden">
-          <div class="mb-2">
-            <label class="block text-xs mb-1">Cursor Range: <span id="cursorRangeValue">40</span>px</label>
-            <input type="range" id="cursorRangeSlider" class="slider w-full h-2" min="10" max="100" value="40">
-          </div>
-          <div class="mb-2">
-            <label class="block text-xs mb-1">Repel Force: <span id="repelForceValue">0.8</span></label>
-            <input type="range" id="repelForceSlider" class="slider w-full h-2" min="0.1" max="2" step="0.1" value="0.8">
-          </div>
-          <div>
-            <label class="block text-xs mb-1">Performance: <span id="performanceModeValue">Balanced</span></label>
-            <select id="performanceModeSelect" class="w-full py-1 px-2 text-xs rounded border">
-              <option value="quality">High Quality</option>
-              <option value="balanced" selected>Balanced</option>
-              <option value="performance">High Performance</option>
-            </select>
-          </div>
-        </div>
-      `;
-      
-      // "Toy with your creation" button - only visible in greyscale mode
-      // Add event listener after DOM is fully loaded
+      // "Toy with your creation" button
       if (toyWithCreationBtn) {
-        toyWithCreationBtn.addEventListener('click', toggleToyMode);
-      } else {
-        console.error("Toy feature button not found in the DOM");
+        toyWithCreationBtn.addEventListener('click', () => {
+          // Show enhanced toy controls modal
+          toyControlsModal.classList.remove('hidden');
+          
+          // Initialize default values
+          toyCursorRadius.value = 40;
+          toyCursorRadiusValue.textContent = '40';
+          toyForceStrength.value = 0.8;
+          toyForceStrengthValue.textContent = '0.8';
+          toyRenderingMode.value = detectBestRenderingMode();
+          toyPerformanceMode.value = detectBestPerformanceMode();
+          toySamplingRate.value = 100;
+          toySamplingRateValue.textContent = '100';
+          toyMaxCharacters.value = 1000;
+          toyMaxCharactersValue.textContent = '1000';
+          toyShowStats.checked = false;
+        });
       }
       
-      // Check if toy feature should be shown (only in greyscale mode and with completed ASCII art)
-      function updateToyFeatureVisibility() {
-        // Get elements here inside the function to ensure they exist
-        const toyFeatureContainer = document.getElementById('toyFeatureContainer');
-        const toyWithCreationBtn = document.getElementById('toyWithCreationBtn');
+      // Toy mode enhanced UI controls event listeners
+      toyCursorRadius.addEventListener('input', () => {
+        toyCursorRadiusValue.textContent = toyCursorRadius.value;
+      });
+      
+      toyForceStrength.addEventListener('input', () => {
+        toyForceStrengthValue.textContent = toyForceStrength.value;
+      });
+      
+      toySamplingRate.addEventListener('input', () => {
+        toySamplingRateValue.textContent = toySamplingRate.value;
+      });
+      
+      toyMaxCharacters.addEventListener('input', () => {
+        toyMaxCharactersValue.textContent = toyMaxCharacters.value;
+      });
+      
+      toyResetDefaults.addEventListener('click', () => {
+        toyCursorRadius.value = 40;
+        toyCursorRadiusValue.textContent = '40';
+        toyForceStrength.value = 0.8;
+        toyForceStrengthValue.textContent = '0.8';
+        toyRenderingMode.value = detectBestRenderingMode();
+        toyPerformanceMode.value = detectBestPerformanceMode();
+        toySamplingRate.value = 100;
+        toySamplingRateValue.textContent = '100';
+        toyMaxCharacters.value = 1000;
+        toyMaxCharactersValue.textContent = '1000';
+        toyShowStats.checked = false;
+      });
+      
+      toyCloseModal.addEventListener('click', () => {
+        toyControlsModal.classList.add('hidden');
+      });
+      
+      toyApplySettings.addEventListener('click', () => {
+        toyControlsModal.classList.add('hidden');
+        startOptimizedToyMode();
+      });
+      
+      // Detect best rendering mode based on device
+      function detectBestRenderingMode() {
+        // Check if mobile device or low-powered
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         
-        if (!toyFeatureContainer || !toyWithCreationBtn) {
-          console.error("Toy feature elements not found");
+        // For now, use canvas for everything as it's usually more efficient
+        return 'canvas';
+      }
+      
+      // Detect best performance mode based on device
+      function detectBestPerformanceMode() {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        
+        if (isIOS) {
+          return 'extreme'; // iOS devices often struggle with this
+        } else if (isMobile) {
+          return 'performance';
+        } else {
+          return 'balanced';
+        }
+      }
+      
+      // New optimized toy mode variables
+      let toyModeActive = false;
+      let toyAnimationFrameId = null;
+      let toyStats = {
+        frameTime: 0,
+        frameCount: 0,
+        charactersActive: 0
+      };
+      let toyTimestamp = 0;
+      
+      // DOM-based toy mode elements
+      let toyCharacters = [];
+      let toyCharacterMap = new Map(); // For fast lookups
+      
+      // Canvas-based toy mode elements
+      let toyCanvasContext = null;
+      let toyCanvasBuffer = null;
+      let toyCanvasOffscreenContext = null;
+      let toySettings = null;
+      let toyCanvasAnimations = [];
+      let toyStaticChars = [];
+      
+      // Start optimized toy mode
+      function startOptimizedToyMode() {
+        // First clean up any existing toy mode
+        cleanupToyMode();
+        
+        // Store original content in ASCII Output
+        const originalContent = asciiOutput.textContent || '';
+        const originalHtml = asciiOutput.innerHTML || '';
+        
+        // Set toy mode active flag
+        toyModeActive = true;
+        
+        // Get toy settings from UI
+        toySettings = {
+          renderingMode: toyRenderingMode.value,
+          performanceMode: toyPerformanceMode.value,
+          samplingRate: parseInt(toySamplingRate.value) / 100,
+          cursorRadius: parseInt(toyCursorRadius.value),
+          forceStrength: parseFloat(toyForceStrength.value),
+          maxCharacters: parseInt(toyMaxCharacters.value),
+          showStats: toyShowStats.checked
+        };
+        
+        // Initialize toy mode based on rendering mode
+        if (toySettings.renderingMode === 'canvas') {
+          initCanvasToyMode(originalContent);
+        } else {
+          initDomToyMode(originalContent);
+        }
+        
+        // Update button text
+        toyWithCreationBtn.textContent = 'stop toying';
+      }
+      
+      // Initialize Canvas-based toy mode (more efficient)
+      function initCanvasToyMode(content) {
+        console.log('Initializing Canvas-based toy mode');
+        
+        // Clear the ASCII output container
+        asciiOutput.innerHTML = '';
+        
+        // Create a canvas element for the ASCII characters
+        const canvas = document.createElement('canvas');
+        canvas.className = 'interactive-ascii-canvas';
+        canvas.id = 'toyCanvas';
+        asciiOutput.appendChild(canvas);
+        
+        // Set up cursor visual
+        const cursor = document.createElement('div');
+        cursor.className = 'toy-cursor';
+        cursor.style.width = `${toySettings.cursorRadius * 2}px`;
+        cursor.style.height = `${toySettings.cursorRadius * 2}px`;
+        asciiOutput.appendChild(cursor);
+        
+        // If showing stats, add stats container
+        if (toySettings.showStats) {
+          const stats = document.createElement('div');
+          stats.className = 'toy-stats';
+          stats.id = 'toyStats';
+          asciiOutput.appendChild(stats);
+        }
+        
+        // Add quality indicator
+        const qualityIndicator = document.createElement('div');
+        qualityIndicator.className = 'toy-quality-indicator';
+        
+        let qualityClass = '';
+        switch(toySettings.performanceMode) {
+          case 'high': qualityClass = 'quality-high'; break;
+          case 'balanced': qualityClass = 'quality-balanced'; break;
+          case 'performance': qualityClass = 'quality-performance'; break;
+          case 'extreme': qualityClass = 'quality-extreme'; break;
+        }
+        
+        qualityIndicator.classList.add(qualityClass);
+        qualityIndicator.textContent = toySettings.performanceMode === 'high' ? 'High Quality' : 
+                               toySettings.performanceMode === 'balanced' ? 'Balanced' :
+                               toySettings.performanceMode === 'performance' ? 'Performance' : 
+                               'Extreme Performance';
+        asciiOutput.appendChild(qualityIndicator);
+        
+        // Get container dimensions and styling
+        const styles = window.getComputedStyle(asciiOutput);
+        const fontSize = parseInt(styles.fontSize) || 10;
+        const lineHeight = parseFloat(styles.lineHeight) / fontSize || 1.0;
+        const letterSpacing = parseFloat(styles.letterSpacing) / fontSize || 0;
+        
+        // Resize canvas to match container
+        canvas.width = asciiOutput.clientWidth;
+        canvas.height = asciiOutput.clientHeight;
+        
+        // Get rendering context
+        toyCanvasContext = canvas.getContext('2d', { alpha: true });
+        
+        // Create offscreen canvas for double buffering (better performance)
+        toyCanvasBuffer = document.createElement('canvas');
+        toyCanvasBuffer.width = canvas.width;
+        toyCanvasBuffer.height = canvas.height;
+        toyCanvasOffscreenContext = toyCanvasBuffer.getContext('2d', { alpha: true });
+        
+        // Calculate character dimensions
+        const charWidth = fontSize * 0.6 * (1 + letterSpacing);
+        const charHeight = fontSize * lineHeight;
+        
+        // Parse the ASCII content and set up character animation
+        const lines = content.split('\n');
+        let charCount = 0;
+        let selectedChars = 0;
+        
+        // Prepare canvas style
+        toyCanvasContext.font = `${fontSize}px monospace`;
+        toyCanvasContext.textAlign = 'left';
+        toyCanvasContext.textBaseline = 'top';
+        toyCanvasOffscreenContext.font = `${fontSize}px monospace`;
+        toyCanvasOffscreenContext.textAlign = 'left';
+        toyCanvasOffscreenContext.textBaseline = 'top';
+        
+        // Fill both canvases with background color
+        const bgColor = document.body.classList.contains('dark-mode') ? 
+            window.getComputedStyle(document.querySelector('.ascii-container')).backgroundColor : '#ffffff';
+        toyCanvasContext.fillStyle = bgColor;
+        toyCanvasContext.fillRect(0, 0, canvas.width, canvas.height);
+        toyCanvasOffscreenContext.fillStyle = bgColor;
+        toyCanvasOffscreenContext.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Process lines and characters
+        for (let y = 0; y < lines.length; y++) {
+          const line = lines[y] || '';
+          
+          for (let x = 0; x < line.length; x++) {
+            charCount++;
+            
+            // Skip if we've reached character limit or if character is a space
+            if (line[x] === ' ' || line[x] === '\t' || line[x] === '\r') continue;
+            
+            // Apply sampling rate (skip some characters)
+            if (toySettings.samplingRate < 1 && Math.random() > toySettings.samplingRate) continue;
+            
+            // Apply max character limit
+            if (selectedChars >= toySettings.maxCharacters) continue;
+            
+            selectedChars++;
+            
+            // Calculate position
+            const posX = x * charWidth;
+            const posY = y * charHeight;
+            
+            // Add dynamic character
+            toyCanvasAnimations.push({
+              char: line[x],
+              originalX: posX,
+              originalY: posY,
+              x: posX,
+              y: posY,
+              vx: 0,
+              vy: 0,
+              active: false,
+              lastActive: 0
+            });
+            
+            // Add static character to background layer
+            toyStaticChars.push({
+              char: line[x],
+              x: posX,
+              y: posY
+            });
+          }
+        }
+        
+        console.log(`Canvas toy mode initialized with ${selectedChars} active characters out of ${charCount} total characters`);
+        
+        // Render initial static background
+        renderStaticBackground();
+        
+        // Add event listeners for canvas interaction
+        canvas.addEventListener('mousemove', handleCanvasToyMouseMove);
+        canvas.addEventListener('touchmove', handleCanvasToyTouchMove, { passive: false });
+        
+        // Start animation loop
+        toyTimestamp = performance.now();
+        animateCanvasToy();
+      }
+      
+      // Handle mouse movement in canvas toy mode
+      function handleCanvasToyMouseMove(e) {
+        if (!toyModeActive) return;
+        
+        const rect = e.target.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Update cursor position
+        const cursor = document.querySelector('.toy-cursor');
+        if (cursor) {
+          cursor.style.left = `${mouseX}px`;
+          cursor.style.top = `${mouseY}px`;
+        }
+        
+        // Create ripple effect
+        createRipple(mouseX, mouseY);
+      }
+      
+      // Handle touch movement in canvas toy mode
+      function handleCanvasToyTouchMove(e) {
+        if (!toyModeActive) return;
+        e.preventDefault();
+        
+        const rect = e.target.getBoundingClientRect();
+        const touch = e.touches[0];
+        const touchX = touch.clientX - rect.left;
+        const touchY = touch.clientY - rect.top;
+        
+        // Update cursor position
+        const cursor = document.querySelector('.toy-cursor');
+        if (cursor) {
+          cursor.style.left = `${touchX}px`;
+          cursor.style.top = `${touchY}px`;
+        }
+        
+        // Create ripple effect
+        createRipple(touchX, touchY);
+      }
+      
+      // Create visual ripple effect at cursor position
+      function createRipple(x, y) {
+        // Skip ripple based on performance mode to avoid excessive DOM elements
+        const throttleAmount = toySettings.performanceMode === 'high' ? 1 :
+                            toySettings.performanceMode === 'balanced' ? 5 :
+                            toySettings.performanceMode === 'performance' ? 10 :
+                            20; // extreme performance
+        
+        // Only create ripple occasionally based on performance mode
+        if (Math.random() * throttleAmount > 1) return;
+        
+        const ripple = document.createElement('div');
+        ripple.className = 'ripple';
+        ripple.style.left = `${x}px`;
+        ripple.style.top = `${y}px`;
+        ripple.style.width = `${toySettings.cursorRadius * 2}px`;
+        ripple.style.height = `${toySettings.cursorRadius * 2}px`;
+        
+        asciiOutput.appendChild(ripple);
+        
+        // Remove ripple after animation completes
+        setTimeout(() => {
+          if (ripple.parentNode) {
+            ripple.parentNode.removeChild(ripple);
+          }
+        }, 1000);
+      }
+      
+      // Render static background characters (one-time operation for performance)
+      function renderStaticBackground() {
+        // Skip in high quality mode - we'll render everything dynamically
+        if (toySettings.performanceMode === 'high') return;
+        
+        toyCanvasOffscreenContext.fillStyle = document.body.classList.contains('dark-mode') ? 
+            window.getComputedStyle(document.querySelector('.ascii-container')).backgroundColor : '#ffffff';
+        toyCanvasOffscreenContext.fillRect(0, 0, toyCanvasBuffer.width, toyCanvasBuffer.height);
+        
+        toyCanvasOffscreenContext.fillStyle = '#000000';
+        
+        toyStaticChars.forEach(char => {
+          toyCanvasOffscreenContext.fillText(char.char, char.x, char.y);
+        });
+      }
+      
+      // Animate canvas toy mode
+      function animateCanvasToy() {
+        if (!toyModeActive) return;
+        
+        const now = performance.now();
+        const dt = Math.min(30, now - toyTimestamp) / 16.67; // normalized delta time (16.67ms = 60fps)
+        toyTimestamp = now;
+        
+        // Clear canvas
+        toyCanvasContext.clearRect(0, 0, toyCanvasContext.canvas.width, toyCanvasContext.canvas.height);
+        
+        // In non-high-quality mode, draw the static background once
+        if (toySettings.performanceMode !== 'high') {
+          toyCanvasContext.drawImage(toyCanvasBuffer, 0, 0);
+        }
+        
+        // Get cursor position
+        const cursor = document.querySelector('.toy-cursor');
+        const cursorPos = {
+          x: cursor ? parseFloat(cursor.style.left) : -100,
+          y: cursor ? parseFloat(cursor.style.top) : -100,
+        };
+        
+        // Animation constants - adjusted for performance mode
+        const returnSpeed = toySettings.performanceMode === 'extreme' ? 0.2 : 
+                         toySettings.performanceMode === 'performance' ? 0.15 :
+                         toySettings.performanceMode === 'balanced' ? 0.1 : 0.05;
+        const friction = toySettings.performanceMode === 'extreme' ? 0.8 : 
+                      toySettings.performanceMode === 'performance' ? 0.85 :
+                      toySettings.performanceMode === 'balanced' ? 0.9 : 0.95;
+        
+        // Cursor radius squared for faster distance checks
+        const cursorRadiusSq = toySettings.cursorRadius * toySettings.cursorRadius;
+        
+        // Performance counters
+        let activeCount = 0;
+        const updateFrameRate = toySettings.performanceMode === 'extreme' ? 3 : 
+                             toySettings.performanceMode === 'performance' ? 2 :
+                             toySettings.performanceMode === 'balanced' ? 1 : 0;
+        
+        // Skip frames based on performance mode
+        if (toySettings.showStats) {
+          toyStats.frameCount++;
+        }
+        
+        if (updateFrameRate > 0 && toyStats.frameCount % updateFrameRate !== 0) {
+          toyAnimationFrameId = requestAnimationFrame(animateCanvasToy);
           return;
         }
         
-        // Inject toy controls if not already added
-        if (!document.getElementById('toyControls')) {
-          toyFeatureContainer.insertAdjacentHTML('beforeend', toyControlsHtml);
+        // Start measuring time if showing stats
+        let startTime = 0;
+        if (toySettings.showStats) {
+          startTime = performance.now();
+        }
+        
+        // In high quality mode, draw static characters dynamically
+        if (toySettings.performanceMode === 'high') {
+          // Draw background
+          toyCanvasContext.fillStyle = document.body.classList.contains('dark-mode') ? 
+              window.getComputedStyle(document.querySelector('.ascii-container')).backgroundColor : '#ffffff';
+          toyCanvasContext.fillRect(0, 0, toyCanvasContext.canvas.width, toyCanvasContext.canvas.height);
           
-          // Add event listeners to the new controls
-          const cursorRangeSlider = document.getElementById('cursorRangeSlider');
-          const cursorRangeValue = document.getElementById('cursorRangeValue');
-          const repelForceSlider = document.getElementById('repelForceSlider');
-          const repelForceValue = document.getElementById('repelForceValue');
-          const performanceModeSelect = document.getElementById('performanceModeSelect');
-          const performanceModeValue = document.getElementById('performanceModeValue');
+          // Draw static characters
+          toyCanvasContext.fillStyle = '#000000';
+          toyStaticChars.forEach(char => {
+            toyCanvasContext.fillText(char.char, char.x, char.y);
+          });
+        }
+        
+        // Process animated characters
+        toyCanvasAnimations.forEach(char => {
+          // Calculate distance to cursor
+          const dx = char.x - cursorPos.x;
+          const dy = char.y - cursorPos.y;
+          const distSq = dx * dx + dy * dy;
           
-          if (cursorRangeSlider) {
-            cursorRangeSlider.addEventListener('input', () => {
-              cursorRangeValue.textContent = cursorRangeSlider.value;
-              cursorRadius = parseInt(cursorRangeSlider.value);
-            });
+          // Check if within cursor radius
+          if (distSq < cursorRadiusSq) {
+            // Mark as active
+            char.active = true;
+            char.lastActive = now;
+            
+            // Calculate normalized direction vector
+            const dist = Math.sqrt(distSq);
+            const nx = dx / dist;
+            const ny = dy / dist;
+            
+            // Calculate force (stronger when closer)
+            const force = toySettings.forceStrength * (1 - dist / toySettings.cursorRadius) * dt;
+            
+            // Apply cursor repelling force
+            char.vx += nx * force;
+            char.vy += ny * force;
+            
+            activeCount++;
+          } else {
+            // Gradually deactivate characters that are no longer within cursor radius
+            // This prevents characters from abruptly stopping animation
+            if (now - char.lastActive < 1000) {
+              char.active = true;
+              activeCount++;
+            } else {
+              char.active = false;
+            }
           }
           
-          if (repelForceSlider) {
-            repelForceSlider.addEventListener('input', () => {
-              repelForceValue.textContent = repelForceSlider.value;
-              cursorForce = parseFloat(repelForceSlider.value);
-            });
+          // Apply return force to original position
+          const ox = char.originalX - char.x;
+          const oy = char.originalY - char.y;
+          
+          if (Math.abs(ox) > 0.1 || Math.abs(oy) > 0.1) {
+            char.vx += ox * returnSpeed * dt;
+            char.vy += oy * returnSpeed * dt;
+            char.active = true;
+            activeCount++;
           }
           
-          if (performanceModeSelect) {
-            performanceModeSelect.addEventListener('change', () => {
-              performanceModeValue.textContent = performanceModeSelect.options[performanceModeSelect.selectedIndex].text;
+          // Apply friction
+          char.vx *= friction;
+          char.vy *= friction;
+          
+          // Update position
+          if (Math.abs(char.vx) > 0.01 || Math.abs(char.vy) > 0.01) {
+            char.x += char.vx;
+            char.y += char.vy;
+            char.active = true;
+            activeCount++;
+          }
+          
+          // Draw character if active
+          if (char.active) {
+            // Calculate color based on displacement
+            const displacement = Math.sqrt(
+              (char.x - char.originalX) * (char.x - char.originalX) + 
+              (char.y - char.originalY) * (char.y - char.originalY)
+            );
+            
+            if (displacement > 1) {
+              const hue = (displacement * 5) % 360;
+              toyCanvasContext.fillStyle = `hsl(${hue}, 80%, 50%)`;
+            } else {
+              toyCanvasContext.fillStyle = '#000000';
+            }
+            
+            toyCanvasContext.fillText(char.char, char.x, char.y);
+          } else if (toySettings.performanceMode === 'high') {
+            // In high quality mode, we already drew the static characters
+          }
+        });
+        
+        // Update stats if enabled
+        if (toySettings.showStats) {
+          toyStats.frameTime = performance.now() - startTime;
+          toyStats.charactersActive = activeCount;
+          
+          const statsElement = document.getElementById('toyStats');
+          if (statsElement) {
+            statsElement.textContent = `FPS: ${Math.round(1000 / toyStats.frameTime)} | Active: ${activeCount} | Frame time: ${toyStats.frameTime.toFixed(2)}ms`;
+          }
+        }
+        
+        // Continue animation loop
+        toyAnimationFrameId = requestAnimationFrame(animateCanvasToy);
+      }
+      
+      // Initialize DOM-based toy mode (better quality but less efficient)
+      function initDomToyMode(content) {
+        console.log('Initializing DOM-based toy mode');
+        
+        // Clean up existing toy mode elements
+        cleanupToyMode();
+        
+        // Create container for interactive ASCII characters
+        const interactiveContainer = document.createElement('div');
+        interactiveContainer.id = 'toyInteractiveContainer';
+        interactiveContainer.style.position = 'relative';
+        interactiveContainer.style.width = '100%';
+        interactiveContainer.style.height = '100%';
+        
+        // Clear ASCII output and append container
+        asciiOutput.innerHTML = '';
+        asciiOutput.appendChild(interactiveContainer);
+        
+        // Add cursor visual
+        const cursor = document.createElement('div');
+        cursor.className = 'toy-cursor';
+        cursor.style.width = `${toySettings.cursorRadius * 2}px`;
+        cursor.style.height = `${toySettings.cursorRadius * 2}px`;
+        asciiOutput.appendChild(cursor);
+        
+        // If showing stats, add stats container
+        if (toySettings.showStats) {
+          const stats = document.createElement('div');
+          stats.className = 'toy-stats';
+          stats.id = 'toyStats';
+          asciiOutput.appendChild(stats);
+        }
+        
+        // Add quality indicator
+        const qualityIndicator = document.createElement('div');
+        qualityIndicator.className = 'toy-quality-indicator';
+        
+        let qualityClass = '';
+        switch(toySettings.performanceMode) {
+          case 'high': qualityClass = 'quality-high'; break;
+          case 'balanced': qualityClass = 'quality-balanced'; break;
+          case 'performance': qualityClass = 'quality-performance'; break;
+          case 'extreme': qualityClass = 'quality-extreme'; break;
+        }
+        
+        qualityIndicator.classList.add(qualityClass);
+        qualityIndicator.textContent = toySettings.performanceMode === 'high' ? 'High Quality' : 
+                               toySettings.performanceMode === 'balanced' ? 'Balanced' :
+                               toySettings.performanceMode === 'performance' ? 'Performance' : 
+                               'Extreme Performance';
+        asciiOutput.appendChild(qualityIndicator);
+        
+        // Parse the ASCII content and create DOM elements
+        const styles = window.getComputedStyle(asciiOutput);
+        const fontSize = parseInt(styles.fontSize) || 10;
+        const lineHeight = parseFloat(styles.lineHeight) / fontSize || 1.0;
+        const letterSpacing = parseFloat(styles.letterSpacing) / fontSize || 0;
+        
+        const charWidth = fontSize * 0.6 * (1 + letterSpacing);
+        const charHeight = fontSize * lineHeight;
+        
+        const lines = content.split('\n');
+        
+        // Determine which elements should be interactive vs static
+        // This is a key optimization - static elements don't get animated
+        const isStatic = toySettings.performanceMode === 'extreme' ? true : 
+                      toySettings.performanceMode === 'performance' ? Math.random() > 0.5 :
+                      toySettings.performanceMode === 'balanced' ? Math.random() > 0.8 : false;
+        
+        let charCount = 0;
+        let selectedChars = 0;
+        
+        // Process each character
+        for (let y = 0; y < lines.length; y++) {
+          const line = lines[y] || '';
+          
+          for (let x = 0; x < line.length; x++) {
+            charCount++;
+            
+            // Skip spaces
+            if (line[x] === ' ' || line[x] === '\t' || line[x] === '\r') continue;
+            
+            // Apply sampling rate
+            if (toySettings.samplingRate < 1 && Math.random() > toySettings.samplingRate) {
+              // Create static element for background instead
+              const staticChar = document.createElement('div');
+              staticChar.className = 'toy-char-static';
+              staticChar.textContent = line[x];
+              staticChar.style.left = `${x * charWidth}px`;
+              staticChar.style.top = `${y * charHeight}px`;
+              interactiveContainer.appendChild(staticChar);
+              continue;
+            }
+            
+            // Apply max characters limit
+            if (selectedChars >= toySettings.maxCharacters) {
+              // Create static element for background instead
+              const staticChar = document.createElement('div');
+              staticChar.className = 'toy-char-static';
+              staticChar.textContent = line[x];
+              staticChar.style.left = `${x * charWidth}px`;
+              staticChar.style.top = `${y * charHeight}px`;
+              interactiveContainer.appendChild(staticChar);
+              continue;
+            }
+            
+            selectedChars++;
+            
+            // Create either dynamic or static element based on performance mode
+            if (isStatic) {
+              const staticChar = document.createElement('div');
+              staticChar.className = 'toy-char-static';
+              staticChar.textContent = line[x];
+              staticChar.style.left = `${x * charWidth}px`;
+              staticChar.style.top = `${y * charHeight}px`;
+              interactiveContainer.appendChild(staticChar);
+            } else {
+              // Create interactive character element
+              const charElem = document.createElement('div');
+              charElem.className = 'toy-char';
+              charElem.textContent = line[x];
+              charElem.style.left = `${x * charWidth}px`;
+              charElem.style.top = `${y * charHeight}px`;
+              interactiveContainer.appendChild(charElem);
               
-              // Change performance settings
-              switch(performanceModeSelect.value) {
-                case 'quality':
-                  toyAnimationThrottle = 0; // No throttling
-                  toyAnimationActive = true;
-                  break;
-                case 'balanced':
-                  toyAnimationThrottle = 1; // Small throttle
-                  toyAnimationActive = true;
-                  break;
-                case 'performance':
-                  toyAnimationThrottle = 2; // Heavy throttle
-                  toyAnimationActive = true;
-                  break;
-              }
-            });
+              // Add to interactive characters array
+              toyCharacters.push({
+                elem: charElem,
+                originalX: x * charWidth,
+                originalY: y * charHeight,
+                x: x * charWidth,
+                y: y * charHeight,
+                vx: 0,
+                vy: 0,
+                char: line[x],
+                active: false,
+                lastActive: 0
+              });
+              
+              // For fast lookup
+              toyCharacterMap.set(charElem, toyCharacters.length - 1);
+            }
           }
+        }
+        
+        console.log(`DOM toy mode initialized with ${toyCharacters.length} interactive characters out of ${selectedChars} selected characters`);
+        
+        // Add event listeners
+        interactiveContainer.addEventListener('mousemove', handleDomToyMouseMove);
+        interactiveContainer.addEventListener('touchmove', handleDomToyTouchMove, { passive: false });
+        
+        // Start animation loop
+        toyTimestamp = performance.now();
+        animateDomToy();
+      }
+      
+      // Handle mouse movement in DOM toy mode
+      function handleDomToyMouseMove(e) {
+        if (!toyModeActive) return;
+        
+        const rect = e.currentTarget.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Update cursor visual
+        const cursor = document.querySelector('.toy-cursor');
+        if (cursor) {
+          cursor.style.left = `${mouseX}px`;
+          cursor.style.top = `${mouseY}px`;
+        }
+        
+        // Create ripple effect
+        createRipple(mouseX, mouseY);
+      }
+      
+      // Handle touch movement in DOM toy mode
+      function handleDomToyTouchMove(e) {
+        if (!toyModeActive) return;
+        e.preventDefault();
+        
+        const rect = e.currentTarget.getBoundingClientRect();
+        const touch = e.touches[0];
+        const touchX = touch.clientX - rect.left;
+        const touchY = touch.clientY - rect.top;
+        
+        // Update cursor visual
+        const cursor = document.querySelector('.toy-cursor');
+        if (cursor) {
+          cursor.style.left = `${touchX}px`;
+          cursor.style.top = `${touchY}px`;
+        }
+        
+        // Create ripple effect
+        createRipple(touchX, touchY);
+      }
+      
+      // Animate DOM-based toy mode
+      function animateDomToy() {
+        if (!toyModeActive) return;
+        
+        const now = performance.now();
+        const dt = Math.min(30, now - toyTimestamp) / 16.67; // normalized delta time
+        toyTimestamp = now;
+        
+        // Get cursor position
+        const cursor = document.querySelector('.toy-cursor');
+        const cursorPos = {
+          x: cursor ? parseFloat(cursor.style.left) : -100,
+          y: cursor ? parseFloat(cursor.style.top) : -100
+        };
+        
+        // Animation constants adjusted for performance mode
+        const returnSpeed = toySettings.performanceMode === 'extreme' ? 0.2 : 
+                         toySettings.performanceMode === 'performance' ? 0.15 :
+                         toySettings.performanceMode === 'balanced' ? 0.1 : 0.05;
+        const friction = toySettings.performanceMode === 'extreme' ? 0.8 : 
+                      toySettings.performanceMode === 'performance' ? 0.85 :
+                      toySettings.performanceMode === 'balanced' ? 0.9 : 0.95;
+        
+        // Cursor radius squared for faster distance checks
+        const cursorRadiusSq = toySettings.cursorRadius * toySettings.cursorRadius;
+        
+        // Performance counters
+        let activeCount = 0;
+        const updateFrameRate = toySettings.performanceMode === 'extreme' ? 3 : 
+                             toySettings.performanceMode === 'performance' ? 2 :
+                             toySettings.performanceMode === 'balanced' ? 1 : 0;
+        
+        // Skip frames based on performance mode
+        if (toySettings.showStats) {
+          toyStats.frameCount++;
+        }
+        
+        if (updateFrameRate > 0 && toyStats.frameCount % updateFrameRate !== 0) {
+          toyAnimationFrameId = requestAnimationFrame(animateDomToy);
+          return;
+        }
+        
+        // Start measuring time if showing stats
+        let startTime = 0;
+        if (toySettings.showStats) {
+          startTime = performance.now();
+        }
+        
+        // Prepare transform batch updates
+        const transforms = new Map();
+        const colors = new Map();
+        
+        // Process characters
+        for (let i = 0; i < toyCharacters.length; i++) {
+          const char = toyCharacters[i];
+          
+          // Calculate distance to cursor
+          const dx = char.x - cursorPos.x;
+          const dy = char.y - cursorPos.y;
+          const distSq = dx * dx + dy * dy;
+          
+          let isActive = false;
+          
+          // Check if within cursor radius
+          if (distSq < cursorRadiusSq) {
+            // Mark as active
+            char.active = true;
+            char.lastActive = now;
+            
+            // Calculate normalized direction vector
+            const dist = Math.sqrt(distSq);
+            const nx = dx / dist;
+            const ny = dy / dist;
+            
+            // Calculate force (stronger when closer)
+            const force = toySettings.forceStrength * (1 - dist / toySettings.cursorRadius) * dt;
+            
+            // Apply cursor repelling force
+            char.vx += nx * force;
+            char.vy += ny * force;
+            
+            isActive = true;
+            activeCount++;
+          } else {
+            // Gradually deactivate characters that are no longer within cursor radius
+            if (now - char.lastActive < 1000) {
+              char.active = true;
+              isActive = true;
+              activeCount++;
+            } else {
+              char.active = false;
+            }
+          }
+          
+          // Apply return force to original position
+          const ox = char.originalX - char.x;
+          const oy = char.originalY - char.y;
+          
+          if (Math.abs(ox) > 0.1 || Math.abs(oy) > 0.1) {
+            char.vx += ox * returnSpeed * dt;
+            char.vy += oy * returnSpeed * dt;
+            isActive = true;
+            activeCount++;
+          }
+          
+          // Apply friction
+          char.vx *= friction;
+          char.vy *= friction;
+          
+          // Update position
+          if (Math.abs(char.vx) > 0.01 || Math.abs(char.vy) > 0.01) {
+            char.x += char.vx * dt;
+            char.y += char.vy * dt;
+            isActive = true;
+            activeCount++;
+          }
+          
+          // Only update DOM if character is active
+          if (isActive) {
+            // Create transform
+            transforms.set(char.elem, `translate3d(${char.x - char.originalX}px, ${char.y - char.originalY}px, 0)`);
+            
+            // Calculate color based on displacement
+            const displacement = Math.sqrt(
+              (char.x - char.originalX) * (char.x - char.originalX) + 
+              (char.y - char.originalY) * (char.y - char.originalY)
+            );
+            
+            if (displacement > 1) {
+              const hue = (displacement * 5) % 360;
+              colors.set(char.elem, `hsl(${hue}, 80%, 50%)`);
+            } else if (char.elem.style.color) {
+              colors.set(char.elem, '');
+            }
+          }
+        }
+        
+        // Batch update DOM elements - much more efficient than doing individual updates
+        transforms.forEach((transform, element) => {
+          element.style.transform = transform;
+        });
+        
+        colors.forEach((color, element) => {
+          element.style.color = color;
+        });
+        
+        // Update stats if enabled
+        if (toySettings.showStats) {
+          toyStats.frameTime = performance.now() - startTime;
+          toyStats.charactersActive = activeCount;
+          
+          const statsElement = document.getElementById('toyStats');
+          if (statsElement) {
+            statsElement.textContent = `FPS: ${Math.round(1000 / toyStats.frameTime)} | Active: ${activeCount} | Frame time: ${toyStats.frameTime.toFixed(2)}ms`;
+          }
+        }
+        
+        // Continue animation loop
+        toyAnimationFrameId = requestAnimationFrame(animateDomToy);
+      }
+      
+      // Clean up toy mode
+      function cleanupToyMode() {
+        console.log("Cleaning up toy mode");
+        
+        // Cancel animation frame
+        if (toyAnimationFrameId) {
+          cancelAnimationFrame(toyAnimationFrameId);
+          toyAnimationFrameId = null;
+        }
+        
+        // Reset toy mode active flag
+        toyModeActive = false;
+        
+        // Remove DOM elements
+        toyCharacters = [];
+        toyCharacterMap.clear();
+        toyCanvasAnimations = [];
+        toyStaticChars = [];
+        
+        // Clean up canvas contexts
+        toyCanvasContext = null;
+        toyCanvasOffscreenContext = null;
+        toyCanvasBuffer = null;
+        
+        // Remove DOM elements
+        const interactiveContainer = document.getElementById('toyInteractiveContainer');
+        if (interactiveContainer) {
+          interactiveContainer.removeEventListener('mousemove', handleDomToyMouseMove);
+          interactiveContainer.removeEventListener('touchmove', handleDomToyTouchMove);
+        }
+        
+        const canvas = document.getElementById('toyCanvas');
+        if (canvas) {
+          canvas.removeEventListener('mousemove', handleCanvasToyMouseMove);
+          canvas.removeEventListener('touchmove', handleCanvasToyTouchMove);
+        }
+        
+        // Restore original content from backup
+        // We'll fetch it from asciiOutput's stored content
+        toyWithCreationBtn.textContent = "toy with your creation";
+      }
+      
+      // Check if toy feature should be shown
+      function updateToyFeatureVisibility() {
+        if (!toyFeatureContainer || !toyWithCreationBtn) {
+          console.error("Toy feature elements not found");
+          return;
         }
         
         const settings = getCurrentSettings();
@@ -1979,594 +3346,9 @@
           toyFeatureContainer.classList.add('hidden');
           // Ensure toy mode is disabled if not visible
           if (toyModeActive) {
-            toggleToyMode();
+            cleanupToyMode();
           }
         }
-      }
-      
-      // Interactive ASCII character animation for "toy with your creation" mode
-      function toggleToyMode() {
-        console.log("Toggle toy mode called, current state:", toyModeActive);
-        
-        if (toyModeActive) {
-          // Disable toy mode
-          toyModeActive = false;
-          toyWithCreationBtn.textContent = "toy with your creation";
-          
-          // Stop the animation loop
-          if (animationFrameId) {
-            cancelAnimationFrame(animationFrameId);
-            animationFrameId = null;
-          }
-          
-          // Restore original ASCII art
-          cleanupToyMode();
-        } else {
-          // Enable toy mode
-          toyModeActive = true;
-          toyWithCreationBtn.textContent = "stop toying";
-          
-          // Initialize the interactive ASCII character elements
-          const initialized = initializeToyMode();
-          
-          // Only start animation if initialization was successful
-          if (initialized) {
-            // Start the animation loop
-            animateCharacters();
-          } else {
-            // Reset toy mode if initialization failed
-            toyModeActive = false;
-            toyWithCreationBtn.textContent = "toy with your creation";
-          }
-        }
-      }
-      
-      function initializeToyMode() {
-        console.log("Initializing toy mode...");
-        
-        // Store the original content for later restoration
-        const originalHTML = asciiOutput.innerHTML;
-        const originalText = asciiOutput.textContent || asciiOutput.innerText;
-        
-        // Save to a data attribute so we can restore it exactly as-is
-        asciiOutput.setAttribute('data-original-html', originalHTML);
-        asciiOutput.setAttribute('data-original-text', originalText);
-        
-        if (!originalText || originalText.trim() === '') {
-          console.error("No ASCII content to animate");
-          return false;
-        }
-        
-        // Parse the ASCII content into lines
-        const lines = originalText.split('\n');
-        console.log(`Found ${lines.length} lines of ASCII content`);
-        
-        // Get styling information
-        const styles = window.getComputedStyle(asciiOutput);
-        const fontSize = parseInt(styles.fontSize) || 10;
-        const lineHeight = parseFloat(styles.lineHeight) / fontSize || 1.0;
-        const letterSpacing = parseFloat(styles.letterSpacing) / fontSize || 0;
-        
-        console.log(`Font size: ${fontSize}, Line height: ${lineHeight}, Letter spacing: ${letterSpacing}`);
-        
-        // Save current dimensions
-        const containerWidth = asciiOutput.offsetWidth;
-        const containerHeight = asciiOutput.offsetHeight;
-        
-        // Clear previous interactive elements if any
-        asciiCharacters = [];
-        originalPositions = [];
-        
-        // Create interactive container with same dimensions as original
-        const interactiveContainer = document.createElement('div');
-        interactiveContainer.id = 'interactiveAsciiContainer';
-        interactiveContainer.style.position = 'relative';
-        interactiveContainer.style.width = containerWidth + 'px';
-        interactiveContainer.style.height = containerHeight + 'px';
-        interactiveContainer.style.fontFamily = 'monospace';
-        interactiveContainer.style.fontSize = `${fontSize}px`;
-        interactiveContainer.style.lineHeight = lineHeight;
-        interactiveContainer.style.letterSpacing = `${letterSpacing}em`;
-        interactiveContainer.style.whiteSpace = 'pre';
-        interactiveContainer.style.display = 'block';
-        
-        // Clear and append the container
-        asciiOutput.innerHTML = '';
-        asciiOutput.appendChild(interactiveContainer);
-        
-        // Add mouse/touch event listeners for interaction
-        interactiveContainer.addEventListener('mousemove', handleMouseMove);
-        interactiveContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
-        
-        // Calculate character dimensions
-        const charWidth = fontSize * 0.6 * (1 + letterSpacing);
-        const charHeight = fontSize * lineHeight;
-        
-        // Track how many characters we've processed
-        let charCount = 0;
-        
-        // Process each character in each line
-        for (let y = 0; y < lines.length; y++) {
-          const line = lines[y] || '';
-          
-          for (let x = 0; x < line.length; x++) {
-            const char = line[x];
-            
-            // Skip empty spaces (optimizes performance)
-            if (char === ' ' || !char) continue;
-            
-            // Create character element
-            const charElem = document.createElement('div');
-            charElem.textContent = char;
-            charElem.style.position = 'absolute';
-            charElem.style.left = `${x * charWidth}px`;
-            charElem.style.top = `${y * charHeight}px`;
-            
-            // Add to container
-            interactiveContainer.appendChild(charElem);
-            charCount++;
-            
-            // Store original position
-            const originalPos = { x: x * charWidth, y: y * charHeight, char };
-            originalPositions.push(originalPos);
-            
-            // Store character with physics properties
-            asciiCharacters.push({
-              elem: charElem,
-              originalX: x * charWidth,
-              originalY: y * charHeight,
-              x: x * charWidth,
-              y: y * charHeight,
-              vx: 0,
-              vy: 0,
-              char
-            });
-          }
-        }
-        
-        console.log(`Initialized ${charCount} interactive characters`);
-        
-        // If no characters were created, restore original content and return false
-        if (charCount === 0) {
-          console.error("Failed to create interactive characters");
-          cleanupToyMode();
-          return false;
-        }
-        
-        return true;
-      }
-      
-      function handleMouseMove(e) {
-        if (!toyModeActive) return;
-        
-        const container = document.getElementById('interactiveAsciiContainer');
-        if (!container) return;
-        
-        const rect = container.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        
-        // Update mouse position for animation loop
-        cursorPos = { x: mouseX, y: mouseY };
-      }
-      
-      function handleTouchMove(e) {
-        if (!toyModeActive) return;
-        e.preventDefault();
-        
-        const container = document.getElementById('interactiveAsciiContainer');
-        if (!container || !e.touches[0]) return;
-        
-        const rect = container.getBoundingClientRect();
-        const touchX = e.touches[0].clientX - rect.left;
-        const touchY = e.touches[0].clientY - rect.top;
-        
-        // Update touch position for animation loop
-        cursorPos = { x: touchX, y: touchY };
-      }
-      
-      // Animation variables
-      let cursorPos = { x: -100, y: -100 }; // Start off-screen
-      
-      // Additional toy mode variables
-      let cursorRadius = 40;
-      let cursorForce = 0.8;
-      let toyAnimationThrottle = 1; // 0 = none, 1 = light, 2 = heavy
-      let toyAnimationActive = true;
-      let toyFrameCount = 0;
-      
-      function animateCharacters() {
-        if (!toyModeActive) return;
-        
-        // Performance mode - skip frames based on throttle setting
-        toyFrameCount++;
-        if (toyAnimationThrottle > 0 && toyFrameCount % (toyAnimationThrottle + 1) !== 0) {
-          animationFrameId = requestAnimationFrame(animateCharacters);
-          return;
-        }
-        
-        // Get toy controls if they exist
-        const toyControls = document.getElementById('toyControls');
-        if (toyControls && toyControls.classList.contains('hidden')) {
-          toyControls.classList.remove('hidden');
-        }
-        
-        // Animation constants
-        const returnForce = 0.1;
-        const friction = 0.9;
-        
-        // Calculate cursor radius squared for faster distance checks
-        const cursorRadiusSq = cursorRadius * cursorRadius;
-        
-        // Track characters that need updates to minimize DOM operations
-        const activeChars = [];
-        
-        // First pass: Calculate physics for all characters
-        for (let i = 0; i < asciiCharacters.length; i++) {
-          const char = asciiCharacters[i];
-          
-          // Quick distance check to avoid expensive calculations for far-away characters
-          const dx = char.x - cursorPos.x;
-          const dy = char.y - cursorPos.y;
-          const distSq = dx * dx + dy * dy;
-          
-          let isActive = false;
-          
-          // Apply cursor repelling force (inverse square law)
-          if (distSq < cursorRadiusSq) {
-            const dist = Math.sqrt(distSq);
-            
-            // Normalize direction vector
-            const nx = dx / dist;
-            const ny = dy / dist;
-            
-            // Calculate repelling force (stronger when closer)
-            const force = cursorForce * (1 - dist / cursorRadius);
-            
-            // Apply force as acceleration
-            char.vx += nx * force;
-            char.vy += ny * force;
-            isActive = true;
-          }
-          
-          // Apply return force to original position
-          const ox = char.originalX - char.x;
-          const oy = char.originalY - char.y;
-          
-          // Only apply return force if character is not at its original position
-          if (Math.abs(ox) > 0.1 || Math.abs(oy) > 0.1) {
-            char.vx += ox * returnForce;
-            char.vy += oy * returnForce;
-            isActive = true;
-          }
-          
-          // Apply friction to velocity
-          if (Math.abs(char.vx) > 0.01 || Math.abs(char.vy) > 0.01) {
-            char.vx *= friction;
-            char.vy *= friction;
-            isActive = true;
-          }
-          
-          // Update position if there's meaningful movement
-          if (Math.abs(char.vx) > 0.01 || Math.abs(char.vy) > 0.01) {
-            char.x += char.vx;
-            char.y += char.vy;
-            isActive = true;
-          }
-          
-          // Add to active list only if it needs visual updates
-          if (isActive) {
-            activeChars.push(char);
-          }
-        }
-        
-        // Second pass: Batch DOM updates for better performance
-        activeChars.forEach(char => {
-          // Update visual position with hardware acceleration
-          char.elem.style.transform = `translate3d(${char.x - char.originalX}px, ${char.y - char.originalY}px, 0)`;
-          
-          // Add a gentle hue shift based on distance from original position
-          const dx = char.x - char.originalX;
-          const dy = char.y - char.originalY;
-          const displacement = Math.sqrt(dx * dx + dy * dy);
-          
-          // Change color based on displacement (only if significant)
-          if (displacement > 1) {
-            const hue = (displacement * 5) % 360;
-            char.elem.style.color = `hsl(${hue}, 80%, 50%)`;
-          } else if (char.elem.style.color) {
-            char.elem.style.color = '';
-          }
-        });
-        
-        // Continue animation loop if active
-        if (toyAnimationActive) {
-          animationFrameId = requestAnimationFrame(animateCharacters);
-        }
-      }
-      
-      function cleanupToyMode() {
-        console.log("Cleaning up toy mode...");
-        
-        // Restore original content directly from the stored HTML/text
-        const originalHTML = asciiOutput.getAttribute('data-original-html');
-        const originalText = asciiOutput.getAttribute('data-original-text');
-        
-        console.log("Original HTML exists:", !!originalHTML);
-        console.log("Original text exists:", !!originalText);
-        
-        if (originalHTML) {
-          // If we have the original HTML, restore it exactly as it was
-          asciiOutput.innerHTML = originalHTML;
-          console.log("Restored original HTML content");
-        } else if (originalText) {
-          // If we only have the text, restore that
-          asciiOutput.innerHTML = '';
-          asciiOutput.textContent = originalText;
-          console.log("Restored original text content");
-        } else {
-          console.error("No original content found to restore!");
-          
-          // Try to reconstruct from character elements as a fallback
-          let reconstructedContent = '';
-          
-          // Get the maximum row and col
-          let maxRow = 0;
-          const charsByRow = new Map();
-          
-          // Group characters by row
-          asciiCharacters.forEach(char => {
-            const fontSize = parseInt(window.getComputedStyle(asciiOutput).fontSize) || 10;
-            const lineHeight = parseFloat(window.getComputedStyle(asciiOutput).lineHeight) / fontSize || 1.0;
-            const charHeight = fontSize * lineHeight;
-            
-            const row = Math.floor(char.originalY / charHeight);
-            maxRow = Math.max(maxRow, row);
-            
-            if (!charsByRow.has(row)) {
-              charsByRow.set(row, []);
-            }
-            
-            charsByRow.get(row).push({
-              col: Math.floor(char.originalX / (fontSize * 0.6)),
-              char: char.char
-            });
-          });
-          
-          // Sort each row by column and build the lines
-          for (let row = 0; row <= maxRow; row++) {
-            const chars = charsByRow.get(row) || [];
-            chars.sort((a, b) => a.col - b.col);
-            
-            let line = '';
-            let lastCol = -1;
-            
-            chars.forEach(c => {
-              // Fill gaps with spaces
-              while (lastCol < c.col - 1) {
-                line += ' ';
-                lastCol++;
-              }
-              line += c.char;
-              lastCol = c.col;
-            });
-            
-            reconstructedContent += line + '\n';
-          }
-          
-          // Apply the reconstructed content
-          if (reconstructedContent) {
-            asciiOutput.innerHTML = '';
-            asciiOutput.textContent = reconstructedContent;
-            console.log("Used reconstructed ASCII content as fallback");
-          }
-        }
-        
-        // Reset state
-        asciiCharacters = [];
-        originalPositions = [];
-        cursorPos = { x: -100, y: -100 };
-      }
-      
-      // Show frame gallery
-      function showFrameGallery() {
-        // Clear existing frames
-        framesContainer.innerHTML = '';
-        
-        // Add each frame to the gallery
-        asciiFrames.forEach((frame, index) => {
-          const frameDiv = document.createElement('div');
-          frameDiv.className = 'frame-item';
-          
-          // Create frame preview container
-          const previewDiv = document.createElement('div');
-          previewDiv.className = 'frame-preview ascii-pre p-2';
-          
-          // Add frame content
-          if (typeof frame === 'string') {
-            previewDiv.textContent = frame;
-          } else if (frame.html) {
-            previewDiv.innerHTML = frame.html;
-          }
-          
-          // Add frame info and controls
-          const infoDiv = document.createElement('div');
-          infoDiv.className = 'flex justify-between items-center';
-          infoDiv.innerHTML = `
-            <span class="text-sm font-medium">Frame ${index + 1}</span>
-            <button class="save-frame-btn primary-btn text-sm px-2 py-1 rounded" data-index="${index}">Save Frame</button>
-          `;
-          
-          frameDiv.appendChild(previewDiv);
-          frameDiv.appendChild(infoDiv);
-          framesContainer.appendChild(frameDiv);
-          
-          // If we have a saved frame image, store it
-          if (framePreviews[index]) {
-            const saveBtn = frameDiv.querySelector('.save-frame-btn');
-            saveBtn.addEventListener('click', () => {
-              saveFrame(index);
-            });
-          }
-        });
-        
-        // Show the gallery
-        frameGallery.classList.remove('hidden');
-      }
-      
-      // Save an individual frame
-      function saveFrame(index) {
-        if (!framePreviews[index]) {
-          // Generate the frame image if it doesn't exist
-          createFrameImage(index).then(() => {
-            displayFramePreview(index);
-          });
-        } else {
-          displayFramePreview(index);
-        }
-      }
-      
-      // Create an image for a frame
-      async function createFrameImage(index) {
-        const frame = asciiFrames[index];
-        const settings = getCurrentSettings();
-        
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        // Set dimensions based on content
-        const fontSize = parseInt(settings.fontSize);
-        const lineHeight = parseFloat(settings.lineHeight);
-        const letterSpacing = parseFloat(settings.letterSpacing);
-        const bgColor = settings.bgColor;
-        
-        if (typeof frame === 'string') {
-          // For text frames
-          const lines = frame.split('\n');
-          const maxLineLength = Math.max(...lines.map(line => line.length));
-          
-          const charWidth = fontSize * 0.6 * (1 + parseFloat(letterSpacing));
-          const charHeight = fontSize * lineHeight;
-          
-          canvas.width = Math.ceil(maxLineLength * charWidth) + 40;
-          canvas.height = Math.ceil(lines.length * charHeight) + 40;
-          
-          // Fill background
-          ctx.fillStyle = bgColor;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          
-          // Draw text
-          ctx.font = `${fontSize}px monospace`;
-          ctx.fillStyle = '#000000';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'top';
-          
-          for (let i = 0; i < lines.length; i++) {
-            const y = 20 + i * charHeight;
-            
-            for (let j = 0; j < lines[i].length; j++) {
-              ctx.fillText(
-                lines[i][j],
-                20 + j * charWidth,
-                y
-              );
-            }
-          }
-        } else if (frame.html) {
-          // For HTML frames (colored ASCII)
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = frame.html;
-          tempDiv.style.fontFamily = 'monospace';
-          tempDiv.style.fontSize = `${fontSize}px`;
-          tempDiv.style.lineHeight = lineHeight;
-          tempDiv.style.letterSpacing = `${letterSpacing}em`;
-          tempDiv.style.backgroundColor = bgColor;
-          tempDiv.style.padding = '20px';
-          tempDiv.style.whiteSpace = 'pre';
-          tempDiv.style.display = 'inline-block';
-          
-          // Add to document temporarily to measure
-          document.body.appendChild(tempDiv);
-          const width = tempDiv.offsetWidth;
-          const height = tempDiv.offsetHeight;
-          
-          canvas.width = width + 20;
-          canvas.height = height + 20;
-          
-          // Fill background
-          ctx.fillStyle = bgColor;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          
-          // Draw the content
-          const rows = Array.from(tempDiv.querySelectorAll('br')).reduce((acc, br) => {
-            const rowDiv = document.createElement('div');
-            let node = br.previousSibling;
-            const nodes = [];
-            
-            while (node && node.previousSibling) {
-              nodes.unshift(node);
-              node = node.previousSibling;
-            }
-            
-            if (nodes.length > 0) {
-              nodes.forEach(n => rowDiv.appendChild(n.cloneNode(true)));
-              acc.push(rowDiv);
-            }
-            
-            return acc;
-          }, []);
-          
-          let curY = 10;
-          rows.forEach(row => {
-            let curX = 10;
-            // Process each span
-            Array.from(row.childNodes).forEach(node => {
-              if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'SPAN') {
-                const color = node.style.color || '#000';
-                ctx.fillStyle = color;
-                ctx.font = `${fontSize}px monospace`;
-                ctx.textBaseline = 'top';
-                
-                for (let i = 0; i < node.textContent.length; i++) {
-                  ctx.fillText(node.textContent[i], curX, curY);
-                  curX += fontSize * 0.6 * (1 + parseFloat(letterSpacing));
-                }
-              }
-            });
-            
-            // Move to next row
-            curY += fontSize * lineHeight;
-          });
-          
-          document.body.removeChild(tempDiv);
-        }
-        
-        // Store the data URL
-        framePreviews[index] = canvas.toDataURL('image/png');
-      }
-      
-      // Display a frame for downloading
-      function displayFramePreview(index) {
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
-        modal.innerHTML = `
-          <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-2xl w-full">
-            <h3 class="text-xl font-bold mb-4">Frame ${index + 1}</h3>
-            <div class="mb-4">
-              <img src="${framePreviews[index]}" alt="Frame ${index + 1}" class="max-w-full border rounded">
-            </div>
-            <p class="mb-4 text-sm">Right-click on the image and select "Save image as..." to download it.</p>
-            <div class="flex justify-end">
-              <button class="close-modal-btn border rounded-lg px-4 py-2">Close</button>
-            </div>
-          </div>
-        `;
-        
-        document.body.appendChild(modal);
-        
-        modal.querySelector('.close-modal-btn').addEventListener('click', () => {
-          document.body.removeChild(modal);
-        });
       }
       
       // Value display updates for sliders
@@ -2647,7 +3429,7 @@
       confirmSavePresetBtn.addEventListener('click', () => {
         const name = presetName.value.trim();
         if (!name) {
-          alert('Please enter a preset name');
+          showNotification('Please enter a preset name', 'error');
           return;
         }
         
@@ -2720,7 +3502,7 @@
       exportPresetBtn.addEventListener('click', () => {
         // Check if there are any presets to export
         if (Object.keys(savedPresets).length === 0) {
-          showNotification('No presets to export. Save a preset first.', 'error');
+          showNotification(translations[currentLanguage].noPresetsError, 'error');
           return;
         }
         
@@ -2731,25 +3513,29 @@
           navigator.clipboard.writeText(presetData)
             .then(() => {
               // Show success notification
-              showNotification('Preset data copied to clipboard!');
+              showNotification(translations[currentLanguage].presetsCopied);
               
               // Create download option as a fallback
               const blob = new Blob([presetData], { type: 'application/json' });
               const url = URL.createObjectURL(blob);
               
-              // Show download option
+              // Show download option with properly escaped text for Chinese
               const downloadModal = document.createElement('div');
               downloadModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+              
+              const downloadInfo = translations[currentLanguage].downloadInfo;
+              const closeText = translations[currentLanguage].close;
+              
               downloadModal.innerHTML = `
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
-                  <h3 class="text-xl font-bold mb-4">Export Presets</h3>
-                  <p class="mb-4">Preset data has been copied to your clipboard.</p>
-                  <p class="mb-4">You can also right-click the link below and select "Save link as..." to download a JSON file:</p>
+                  <h3 class="text-xl font-bold mb-4">${translations[currentLanguage].exportTitle}</h3>
+                  <p class="mb-4">${translations[currentLanguage].presetCopiedInfo}</p>
+                  <p class="mb-4">${downloadInfo}</p>
                   <div class="flex justify-between mb-4">
                     <a href="${url}" target="_blank" class="text-blue-500 hover:underline break-all">ascii-art-presets.json</a>
                   </div>
                   <div class="flex justify-end gap-2">
-                    <button id="closeExportModalBtn" class="border rounded-lg px-4 py-2">Close</button>
+                    <button id="closeExportModalBtn" class="border rounded-lg px-4 py-2">${closeText}</button>
                   </div>
                 </div>
               `;
@@ -2764,11 +3550,11 @@
             })
             .catch(err => {
               console.error('Failed to copy preset data:', err);
-              showNotification('Failed to copy preset data to clipboard', 'error');
+              showNotification(translations[currentLanguage].copyError, 'error');
             });
         } catch (error) {
           console.error('Error exporting presets:', error);
-          showNotification('Error exporting presets', 'error');
+          showNotification(translations[currentLanguage].exportError, 'error');
         }
       });
       
@@ -2796,9 +3582,9 @@
           importPresetModal.classList.add('hidden');
           presetJSON.value = '';
           
-          alert('Presets imported successfully!');
+          showNotification('Presets imported successfully!');
         } catch (e) {
-          alert('Error importing presets: ' + e.message);
+          showNotification('Error importing presets: ' + e.message, 'error');
         }
       });
       
@@ -2816,12 +3602,6 @@
       copyTextBtn.addEventListener('click', copyAsciiText);
       newImageBtn.addEventListener('click', resetToNewImage);
       resetErrorBtn.addEventListener('click', resetError);
-      
-      // Variables for interactive ASCII animation
-      let toyModeActive = false;
-      let asciiCharacters = [];
-      let originalPositions = [];
-      let animationFrameId = null;
       
       // Helper Functions
       function handleFile(file) {
@@ -4165,7 +4945,7 @@
             
             // Manual rendering approach - detect all color spans and draw chars
             const rows = Array.from(outputDiv.querySelectorAll('div'));
-            let curY = 20; // Start a bit lower to leave room for any overlay text
+            let curY = 10; // Start a bit lower to leave room for any overlay text
             
             rows.forEach(row => {
               let curX = 10;
@@ -4315,7 +5095,7 @@
         imageInput.value = '';
         videoInput.value = '';
         
-        // Stop any animation
+        // Stop any running animation
         pauseAnimation();
         asciiFrames = [];
         framePreviews = [];
@@ -4426,9 +5206,157 @@
         advancedControls.classList.remove('hidden');
       }
       
-      // Initialize the toy feature elements after DOM is fully loaded
-      toyFeatureContainer = document.getElementById('toyFeatureContainer');
-      toyWithCreationBtn = document.getElementById('toyWithCreationBtn');
+      // Apply initial translations
+      updateAllTranslations();
+      
+      // Check if browser language should set default language
+      const browserLang = navigator.language || navigator.userLanguage;
+      if (browserLang.startsWith('zh')) {
+        languageSelect.value = 'zh';
+        currentLanguage = 'zh';
+        updateAllTranslations();
+      }
+      
+      // Check dark mode preference
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        darkModeToggle.checked = true;
+        document.body.classList.remove('light-mode');
+        document.body.classList.add('dark-mode');
+      }
+      
+      // Listen for dark mode changes
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+        darkModeToggle.checked = event.matches;
+        if (event.matches) {
+          document.body.classList.remove('light-mode');
+          document.body.classList.add('dark-mode');
+        } else {
+          document.body.classList.remove('dark-mode');
+          document.body.classList.add('light-mode');
+        }
+      });
+      
+      // Make toy canvas frame show all frames
+      async function createFrameImage(index) {
+        const frame = asciiFrames[index];
+        const settings = getCurrentSettings();
+        
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set dimensions based on content
+        const fontSize = parseInt(settings.fontSize);
+        const lineHeight = parseFloat(settings.lineHeight);
+        const letterSpacing = parseFloat(settings.letterSpacing);
+        const bgColor = settings.bgColor;
+        
+        if (typeof frame === 'string') {
+          // For text frames
+          const lines = frame.split('\n');
+          const maxLineLength = Math.max(...lines.map(line => line.length));
+          
+          const charWidth = fontSize * 0.6 * (1 + parseFloat(letterSpacing));
+          const charHeight = fontSize * lineHeight;
+          
+          canvas.width = Math.ceil(maxLineLength * charWidth) + 40;
+          canvas.height = Math.ceil(lines.length * charHeight) + 40;
+          
+          // Fill background
+          ctx.fillStyle = bgColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Draw text
+          ctx.font = `${fontSize}px monospace`;
+          ctx.fillStyle = '#000000';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+          
+          for (let i = 0; i < lines.length; i++) {
+            const y = 20 + i * charHeight;
+            
+            for (let j = 0; j < lines[i].length; j++) {
+              ctx.fillText(
+                lines[i][j],
+                20 + j * charWidth,
+                y
+              );
+            }
+          }
+        } else if (frame.html) {
+          // For HTML frames (colored ASCII)
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = frame.html;
+          tempDiv.style.fontFamily = 'monospace';
+          tempDiv.style.fontSize = `${fontSize}px`;
+          tempDiv.style.lineHeight = lineHeight;
+          tempDiv.style.letterSpacing = `${letterSpacing}em`;
+          tempDiv.style.backgroundColor = bgColor;
+          tempDiv.style.padding = '20px';
+          tempDiv.style.whiteSpace = 'pre';
+          tempDiv.style.display = 'inline-block';
+          
+          // Add to document temporarily to measure
+          document.body.appendChild(tempDiv);
+          const width = tempDiv.offsetWidth;
+          const height = tempDiv.offsetHeight;
+          
+          canvas.width = width + 20;
+          canvas.height = height + 20;
+          
+          // Fill background
+          ctx.fillStyle = bgColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Draw the content
+          const rows = Array.from(tempDiv.querySelectorAll('br')).reduce((acc, br) => {
+            const rowDiv = document.createElement('div');
+            let node = br.previousSibling;
+            const nodes = [];
+            
+            while (node && node.previousSibling) {
+              nodes.unshift(node);
+              node = node.previousSibling;
+            }
+            
+            if (nodes.length > 0) {
+              nodes.forEach(n => rowDiv.appendChild(n.cloneNode(true)));
+              acc.push(rowDiv);
+            }
+            
+            return acc;
+          }, []);
+          
+          let curY = 10;
+          rows.forEach(row => {
+            let curX = 10;
+            // Process each span
+            Array.from(row.childNodes).forEach(node => {
+              if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'SPAN') {
+                const color = node.style.color || '#000';
+                ctx.fillStyle = color;
+                ctx.font = `${fontSize}px monospace`;
+                ctx.textBaseline = 'top';
+                
+                for (let i = 0; i < node.textContent.length; i++) {
+                  ctx.fillText(node.textContent[i], curX, curY);
+                  curX += fontSize * 0.6 * (1 + parseFloat(letterSpacing));
+                }
+              }
+            });
+            
+            // Move to next row
+            curY += fontSize * lineHeight;
+          });
+          
+          document.body.removeChild(tempDiv);
+        }
+        
+        // Store the data URL
+        framePreviews[index] = canvas.toDataURL('image/png');
+      }
+      
+      // Add console log for debugging
+      console.log("App initialized successfully with enhanced toy mode performance!");
     });
   </script>
 </body>
